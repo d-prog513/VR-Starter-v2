@@ -1,4 +1,4 @@
-# Descent-Vr
+# -Vr parkour pvpve
 An experimental VR exploration and climbing prototype
 Desktop and Quest movement.
 Smooth/snap turning and speed settings.
