@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Descent VR - XR Aim Test v5.1</title>
+<script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+#hud {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  background: #101a29df;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  pointer-events: none;
+  max-width: 340px;
+  white-space: pre-line;
+}
+
+#crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9;
+  color: white;
+  pointer-events: none;
+  font-size: 22px;
+}
+
+body.immersive #hud,
+body.immersive #crosshair {
+  display: none;
+}
+</style>
+
+<script>
+AFRAME.registerComponent('training-v4', {
+  init: function () {
+    const $ = selector => document.querySelector(selector);
+
+    this.rig = $('#rig');
+    this.view = $('#view');
+    this.target = $('#target');
+    this.label = $('#health');
+    this.hud = $('#hud');
+    this.vrhud = $('#vrhud');
+    this.left = $('#left');
+    this.right = $('#right');
+
+    this.keys = new Set();
+    this.axes = {x: 0, y: 0, turn: 0};
+
+    this.mode = 'smooth';
+    this.snapReady = true;
+    this.turnIndex = 1;
+    this.walkIndex = 0;
+    this.turnSpeeds = [30, 60, 90];
+    this.walkSpeeds = [1, 1.5, 2];
+
+    this.grip = false;
+    this.stamina = 100;
+    this.exhausted = false;
+    this.velocityY = 0;
+    this.grounded = true;
+
+    this.hp = 100;
+    this.resetAt = 0;
+    this.flashAt = 0;
+    this.placeAt = 0;
+    this.nextClick = 0;
+    this.lastHUD = '';
+
+    this.head = new THREE.Vector3();
+    this.after = new THREE.Vector3();
+    this.forward = new THREE.Vector3();
+    this.side = new THREE.Vector3();
+    this.center = new THREE.Vector3();
+    this.q = new THREE.Quaternion();
+
+    this.ray = new THREE.Ray();
+    this.hitPoint = new THREE.Vector3();
+    this.sphere = new THREE.Sphere(
+      new THREE.Vector3(),
+      0.18
+    );
+
+    this.hands = [this.left, this.right].map(el => ({
+      el: el,
+      previous: new THREE.Vector3(),
+      world: new THREE.Vector3(),
+      ready: false,
+      connected: false,
+      inside: true,
+      nextHit: 0
+    }));
+
+    this.left.addEventListener('thumbstickmoved', event => {
+      this.axes.x = event.detail.x;
+      this.axes.y = event.detail.y;
+    });
+
+    this.right.addEventListener('thumbstickmoved', event => {
+      this.axes.turn = event.detail.x;
+    });
+
+    this.left.addEventListener('xbuttondown', () => {
+      this.mode = this.mode === 'smooth' ? 'snap' : 'smooth';
+      this.snapReady = false;
+    });
+
+    this.left.addEventListener('ybuttondown', () => {
+      this.turnIndex = (this.turnIndex + 1) % 3;
+    });
+
+    this.right.addEventListener('bbuttondown', () => {
+      this.walkIndex = (this.walkIndex + 1) % 3;
+    });
+
+    this.right.addEventListener('abuttondown', () => {
+      if (this.inVR()) this.jump();
+    });
+
+    this.left.addEventListener('thumbstickdown', () => {
+      if (this.inVR()) {
+        this.grip = !this.grip;
+      }
+    });
+
+    this.hands.forEach(hand => {
+      hand.el.addEventListener('triggerdown', () => {
+        if (this.inVR() && hand.el === this.left) this.placeTarget();
+      });
+
+      hand.el.addEventListener('controllerconnected', () => {
+        hand.connected = true;
+        hand.ready = false;
+      });
+
+      hand.el.addEventListener('controllerdisconnected', () => {
+        hand.connected = false;
+        hand.ready = false;
+        this.clearInput();
+      });
+    });
+
+    const supported = [
+      'KeyW',
+      'KeyA',
+      'KeyS',
+      'KeyD',
+      'Space',
+      'ShiftLeft',
+      'ShiftRight',
+      'KeyR'
+    ];
+
+    window.addEventListener('keydown', event => {
+      if (this.inVR()) return;
+      if (!supported.includes(event.code)) return;
+
+      if (
+        event.target.closest &&
+        event.target.closest('input,textarea,[contenteditable]')
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      this.keys.add(event.code);
+
+      if (event.repeat) return;
+
+      if (event.code === 'Space') this.jump();
+      if (event.code === 'KeyR') this.placeTarget();
+    });
+
+    window.addEventListener('keyup', event => {
+      this.keys.delete(event.code);
+    });
+
+    window.addEventListener('blur', () => {
+      this.clearInput();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      this.clearInput();
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      this.clearInput();
+    });
+
+    this.el.addEventListener('enter-vr', () => {
+      document.body.classList.add('immersive');
+      this.clearInput();
+      this.landReset();
+      this.placeAt = performance.now() + 1000;
+
+      const session = this.el.renderer.xr.getSession();
+
+      if (session) {
+        session.addEventListener('visibilitychange', () => {
+          this.clearInput();
+        });
+      }
+    });
+
+    this.el.addEventListener('exit-vr', () => {
+      document.body.classList.remove('immersive');
+      this.clearInput();
+      this.landReset();
+      this.placeAt = performance.now() + 200;
+    });
+
+    const bindCanvas = () => {
+      if (this.canvasBound || !this.el.canvas) return;
+
+      this.canvasBound = true;
+
+      this.el.canvas.addEventListener('mousedown', event => {
+        if (this.inVR() || event.button !== 0) return;
+        this.desktopPunch();
+      });
+    };
+
+    bindCanvas();
+
+    this.el.addEventListener(
+      'render-target-loaded',
+      bindCanvas
+    );
+
+    this.placeAt = performance.now() + 600;
+  },
+
+  inVR: function () {
+    return this.el.is('vr-mode');
+  },
+
+  clearInput: function () {
+    this.keys.clear();
+    this.axes.x = 0;
+    this.axes.y = 0;
+    this.axes.turn = 0;
+    this.grip = false;
+    this.snapReady = true;
+
+    this.hands.forEach(hand => {
+      hand.ready = false;
+    });
+  },
+
+  landReset: function () {
+    this.rig.object3D.position.y = 0;
+    this.velocityY = 0;
+    this.grounded = true;
+  },
+
+    jump: function () {
+    if (document.hidden) return;
+
+    const climbing = this.el.components['ledge-climb'];
+
+    // A while gripping becomes a ledge launch.
+    if (
+      this.inVR() &&
+      climbing &&
+      climbing.hands.some(hand => hand.grabbing)
+    ) {
+      climbing.launch(this);
+      return;
+    }
+
+    // Otherwise, keep the ordinary ground jump.
+    if (this.grounded) {
+      this.velocityY = 4.2;
+      this.grounded = false;
+    }
+  },
+  
+  placeTarget: function () {
+    this.view.object3D.getWorldPosition(this.head);
+    this.view.object3D.getWorldQuaternion(this.q);
+
+    this.forward.set(0, 0, -1).applyQuaternion(this.q);
+    this.forward.y = 0;
+
+    if (this.forward.lengthSq() < 0.01) {
+      this.forward.set(0, 0, -1);
+    }
+
+    this.forward.normalize();
+
+    this.center.copy(this.head)
+      .addScaledVector(this.forward, 0.65);
+
+    this.center.y = this.head.y - 0.20;
+
+    this.target.object3D.position.copy(this.center);
+    this.label.object3D.position.copy(this.center);
+    this.label.object3D.position.y += 0.30;
+
+    this.hp = 100;
+    this.resetAt = 0;
+    this.flashAt = 0;
+
+    this.target.setAttribute('color', '#26C6DA');
+    this.label.setAttribute('value', 'HP 100 / 100');
+
+    this.hands.forEach(hand => {
+      hand.ready = false;
+      hand.inside = true;
+      hand.nextHit = performance.now() + 500;
+    });
+  },
+
+  damage: function (amount = 20) {
+    if (this.resetAt) return;
+
+    this.hp = Math.max(0, this.hp - amount);
+
+    if (this.hp === 0) {
+      this.target.setAttribute('color', '#FFD54F');
+      this.label.setAttribute('value', 'Complete!');
+      this.resetAt = performance.now() + 1500;
+    } else {
+      this.target.setAttribute('color', '#FF7043');
+
+      this.label.setAttribute(
+        'value',
+        'HP ' + this.hp + ' / 100'
+      );
+
+      this.flashAt = performance.now() + 160;
+    }
+  },
+
+  desktopPunch: function () {
+    const now = performance.now();
+
+    if (now < this.nextClick) return;
+    this.nextClick = now + 350;
+
+    this.view.object3D.getWorldPosition(this.head);
+    this.view.object3D.getWorldQuaternion(this.q);
+
+    this.forward.set(0, 0, -1)
+      .applyQuaternion(this.q)
+      .normalize();
+
+    this.target.object3D.getWorldPosition(
+      this.sphere.center
+    );
+
+    this.ray.set(this.head, this.forward);
+
+    const hit = this.ray.intersectSphere(
+      this.sphere,
+      this.hitPoint
+    );
+
+    if (hit && this.head.distanceTo(hit) <= 1.25) {
+      this.damage();
+    }
+  },
+
+  rotatePlayer: function (angle) {
+    const climbing = this.el.components['ledge-climb'];
+    const grabbed = climbing
+      ? climbing.hands.filter(hand => hand.grabbing)
+      : [];
+    this.rig.object3D.updateWorldMatrix(true, true);
+    grabbed.forEach(hand => {
+      hand.el.object3D.getWorldPosition(hand.world);
+    });
+
+    this.view.object3D.getWorldPosition(this.head);
+
+    this.rig.object3D.rotation.y += angle;
+    this.rig.object3D.updateWorldMatrix(true, true);
+
+    this.view.object3D.getWorldPosition(this.after);
+
+    this.rig.object3D.position.x +=
+      this.head.x - this.after.x;
+
+    this.rig.object3D.position.z +=
+      this.head.z - this.after.z;
+
+    this.rig.object3D.updateWorldMatrix(true, true);
+    // Rebase artificial turning, not physical pulling.
+    grabbed.forEach(hand => {
+      hand.el.object3D.getWorldPosition(this.after);
+      hand.anchor.add(this.after.sub(hand.world));
+      hand.el.object3D.getWorldPosition(hand.world);
+    });
+    this.hands.forEach(hand => { hand.ready = false; });
+  },
+
+  tick: function (time, delta) {
+    if (document.hidden || !delta || delta > 100) {
+      this.clearInput();
+      return;
+    }
+
+    if (this.inVR()) {
+      const session = this.el.renderer.xr.getSession();
+
+      if (
+        session &&
+        session.visibilityState !== 'visible'
+      ) {
+        this.clearInput();
+        return;
+      }
+    }
+    const dt = delta / 1000;
+    const now = performance.now();
+    const vr = this.inVR();
+
+    if (vr) {
+      const turn = this.axes.turn;
+      const amount = Math.abs(turn);
+
+      if (amount < 0.25) {
+        this.snapReady = true;
+      }
+
+      if (
+        this.mode === 'smooth' &&
+        amount > 0.18
+      ) {
+        const speed = THREE.MathUtils.degToRad(
+          this.turnSpeeds[this.turnIndex]
+        );
+
+        this.rotatePlayer(
+          -Math.sign(turn) *
+          (amount - 0.18) / 0.82 *
+          speed * dt
+        );
+      } else if (
+        this.mode === 'snap' &&
+        amount > 0.65 &&
+        this.snapReady
+      ) {
+        this.rotatePlayer(
+          -Math.sign(turn) *
+          THREE.MathUtils.degToRad(30)
+        );
+
+        this.snapReady = false;
+      }
+    }
+
+
+    const climbing = this.el.components['ledge-climb'];
+    if (climbing && climbing.step(this)) {
+      return;
+    }
+
+    let x = vr
+      ? this.axes.x
+      : Number(this.keys.has('KeyD')) -
+        Number(this.keys.has('KeyA'));
+
+    let y = vr
+      ? this.axes.y
+      : Number(this.keys.has('KeyS')) -
+        Number(this.keys.has('KeyW'));
+
+    const magnitude = Math.hypot(x, y);
+    const deadzone = vr ? 0.18 : 0;
+
+    if (magnitude > deadzone) {
+      const scale = Math.min(
+        1,
+        (magnitude - deadzone) / (1 - deadzone)
+      );
+
+      x = x / magnitude * scale;
+      y = y / magnitude * scale;
+    } else {
+      x = 0;
+      y = 0;
+    }
+
+    const sprintHeld = vr
+      ? this.grip
+      : this.keys.has('ShiftLeft') ||
+        this.keys.has('ShiftRight');
+
+    if (
+      this.exhausted &&
+      this.stamina >= 30 &&
+      !sprintHeld
+    ) {
+      this.exhausted = false;
+    }
+
+    const sprint =
+      sprintHeld &&
+      y < -0.35 &&
+      this.grounded &&
+      !this.exhausted &&
+      this.stamina > 0;
+
+    if (sprint) {
+      this.stamina = Math.max(
+        0,
+        this.stamina - 8 * dt
+      );
+
+      if (this.stamina === 0) {
+        this.exhausted = true;
+      }
+    } else if (this.grounded) {
+      this.stamina = Math.min(
+        100,
+        this.stamina + 25 * dt
+      );
+    }
+
+
+    this.view.object3D.getWorldQuaternion(this.q);
+
+    this.forward.set(0, 0, -1)
+      .applyQuaternion(this.q);
+
+    this.forward.y = 0;
+
+    if (this.forward.lengthSq() > 0.01) {
+      this.forward.normalize();
+
+      this.side.set(
+        -this.forward.z,
+        0,
+        this.forward.x
+      );
+
+            const selectedSpeed =
+        this.walkSpeeds[this.walkIndex];
+
+      // Remember movement speed while on the ground.
+      if (this.grounded) {
+        this.takeoffSpeed =
+          selectedSpeed * (sprint ? 1.8 : 1);
+      }
+
+      // Keep that speed during the jump or fall.
+      const movementSpeed = this.grounded
+        ? selectedSpeed * (sprint ? 1.8 : 1)
+        : (this.takeoffSpeed ?? selectedSpeed);
+
+      const distance = movementSpeed * dt;
+
+      this.rig.object3D.position
+        .addScaledVector(
+          this.forward,
+          -y * distance
+        )
+        .addScaledVector(
+          this.side,
+          x * distance
+        );
+    }
+
+        // Brief ledge-launch impulse.
+    // Stick steering continues to work separately.
+    if (this.grounded) {
+      this.launchTime = 0;
+      this.launchVX = 0;
+      this.launchVZ = 0;
+    } else if ((this.launchTime || 0) > 0) {
+      const pushTime = Math.min(dt, this.launchTime);
+
+      this.rig.object3D.position.x +=
+        (this.launchVX || 0) * pushTime;
+
+      this.rig.object3D.position.z +=
+        (this.launchVZ || 0) * pushTime;
+
+      this.launchTime = Math.max(
+        0,
+        this.launchTime - pushTime
+      );
+    }
+
+    // Create three fixed practice platforms once.
+    if (!this.practicePlatforms) {
+      this.practicePlatforms = [
+        {
+          x: 0,
+          z: -2,
+          width: 2,
+          depth: 1.2,
+          top: 0.35,
+          color: '#4DB6AC'
+        },
+        {
+          x: 0,
+          z: -3.6,
+          width: 2,
+          depth: 1.2,
+          top: 0.70,
+          color: '#42A5F5'
+        },
+        {
+          x: 0,
+          z: -5.2,
+          width: 2,
+          depth: 1.2,
+          top: 1.05,
+          color: '#AB80E8'
+        }
+      ];
+
+      this.practicePlatforms.forEach(platform => {
+        const box = document.createElement('a-box');
+
+        box.setAttribute('position', {
+          x: platform.x,
+          y: platform.top / 2,
+          z: platform.z
+        });
+
+        box.setAttribute('width', platform.width);
+        box.setAttribute('height', platform.top);
+        box.setAttribute('depth', platform.depth);
+        box.setAttribute('color', platform.color);
+
+        this.el.appendChild(box);
+      });
+    }
+
+    const previousFeetY = this.rig.object3D.position.y;
+
+    // Apply gravity during a jump or fall.
+    if (!this.grounded) {
+      this.velocityY -= 9.8 * dt;
+      this.rig.object3D.position.y += this.velocityY * dt;
+    }
+
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(this.head);
+
+    const playerRadius = 0.18;
+
+    const playerHeight = THREE.MathUtils.clamp(
+      this.head.y - this.rig.object3D.position.y,
+      0.8,
+      2.2
+    );
+
+    let landingHeight = null;
+
+    // Find a platform top crossed while descending.
+    if (this.velocityY <= 0) {
+      this.practicePlatforms.forEach(platform => {
+        const overPlatform =
+          Math.abs(this.head.x - platform.x) <
+            platform.width / 2 + playerRadius * 0.5 &&
+          Math.abs(this.head.z - platform.z) <
+            platform.depth / 2 + playerRadius * 0.5;
+
+        const crossedTop =
+          previousFeetY >= platform.top - 0.02 &&
+          this.rig.object3D.position.y <= platform.top;
+
+        if (overPlatform && crossedTop) {
+          if (
+            landingHeight === null ||
+            platform.top > landingHeight
+          ) {
+            landingHeight = platform.top;
+          }
+        }
+      });
+    }
+
+    if (landingHeight !== null) {
+      this.rig.object3D.position.y = landingHeight;
+      this.velocityY = 0;
+      this.grounded = true;
+    } else if (this.rig.object3D.position.y <= 0) {
+      this.landReset();
+    }
+
+    // Resolve simple collisions against platform sides.
+    this.practicePlatforms.forEach(platform => {
+      const feetY = this.rig.object3D.position.y;
+      const bodyTop = feetY + playerHeight;
+
+      if (
+        feetY >= platform.top - 0.01 ||
+        bodyTop <= 0
+      ) {
+        return;
+      }
+
+      this.rig.object3D.updateWorldMatrix(true, true);
+      this.view.object3D.getWorldPosition(this.head);
+
+      const offsetX = this.head.x - platform.x;
+      const offsetZ = this.head.z - platform.z;
+
+      const overlapX =
+        platform.width / 2 +
+        playerRadius -
+        Math.abs(offsetX);
+
+      const overlapZ =
+        platform.depth / 2 +
+        playerRadius -
+        Math.abs(offsetZ);
+
+      if (overlapX > 0 && overlapZ > 0) {
+        if (overlapX < overlapZ) {
+          this.rig.object3D.position.x +=
+            (offsetX >= 0 ? 1 : -1) * overlapX;
+        } else {
+          this.rig.object3D.position.z +=
+            (offsetZ >= 0 ? 1 : -1) * overlapZ;
+        }
+      }
+    });
+
+    // Check whether the player has walked off a platform.
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(this.head);
+
+    if (
+      this.grounded &&
+      this.rig.object3D.position.y > 0
+    ) {
+      const supported = this.practicePlatforms.some(platform => {
+        const atTop =
+          Math.abs(
+            this.rig.object3D.position.y - platform.top
+          ) < 0.02;
+
+        const overPlatform =
+          Math.abs(this.head.x - platform.x) <
+            platform.width / 2 + playerRadius * 0.5 &&
+          Math.abs(this.head.z - platform.z) <
+            platform.depth / 2 + playerRadius * 0.5;
+
+        return atTop && overPlatform;
+      });
+
+      if (!supported) {
+        this.grounded = false;
+        this.velocityY = 0;
+      }
+    }
+
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(this.head);
+
+    this.rig.object3D.position.x +=
+      THREE.MathUtils.clamp(this.head.x, -7, 7) -
+      this.head.x;
+
+    this.rig.object3D.position.z +=
+      THREE.MathUtils.clamp(this.head.z, -7, 7) -
+      this.head.z;
+
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(this.head);
+
+    if (this.placeAt && now >= this.placeAt) {
+      this.placeAt = 0;
+      this.placeTarget();
+    }
+
+    this.label.object3D.lookAt(this.head);
+
+    if (this.resetAt && now >= this.resetAt) {
+      this.hp = 100;
+      this.resetAt = 0;
+
+      this.label.setAttribute(
+        'value',
+        'HP 100 / 100'
+      );
+
+      this.target.setAttribute(
+        'color',
+        '#26C6DA'
+      );
+    }
+
+    if (this.flashAt && now >= this.flashAt) {
+      this.flashAt = 0;
+
+      if (this.hp > 0) {
+        this.target.setAttribute(
+          'color',
+          '#26C6DA'
+        );
+      }
+    }
+
+    this.target.object3D.getWorldPosition(
+      this.center
+    );
+
+    this.hands.forEach(hand => {
+      if (!vr || !hand.connected) {
+        hand.ready = false;
+        return;
+      }
+
+      const local = hand.el.object3D.position;
+
+      hand.el.object3D.getWorldPosition(
+        hand.world
+      );
+
+      if (!hand.ready) {
+        hand.previous.copy(local);
+        hand.ready = true;
+        return;
+      }
+
+      const speed =
+        local.distanceTo(hand.previous) / dt;
+
+      const distance =
+        hand.world.distanceTo(this.center);
+
+      if (distance > 0.29) {
+        hand.inside = false;
+      }
+
+      if (
+        distance < 0.23 &&
+        !hand.inside
+      ) {
+        hand.inside = true;
+
+        if (
+          speed >= 0.45 &&
+          now >= hand.nextHit &&
+          !this.resetAt
+        ) {
+          hand.nextHit = now + 350;
+          this.damage();
+        }
+      }
+
+      hand.previous.copy(local);
+    });
+
+    const state = !this.grounded
+      ? 'AIR'
+      : sprint
+        ? 'SPRINT'
+        : this.exhausted
+          ? 'RECOVER: release sprint'
+          : 'READY';
+
+    const status =
+      'XR AIM TEST v5.1 | ' +
+      (vr ? 'VR' : 'DESKTOP') + '\n' +
+      'Stamina ' +
+      Math.ceil(this.stamina) +
+      '/100 | ' + state + '\n' +
+      'Turn: ' + this.mode +
+      ' | Walk: ' +
+      this.walkSpeeds[this.walkIndex] +
+      ' m/s';
+
+    if (status !== this.lastHUD) {
+      this.lastHUD = status;
+
+      this.vrhud.setAttribute(
+        'value',
+        status
+      );
+
+      this.hud.textContent =
+        status + ((this.el.components['ability-test'] &&
+          !this.el.components['ability-test'].hints) ? '' : '\n\n' +
+        'WASD: move | Space: jump | Shift: sprint\n' +
+        'Drag mouse: look | Click: short-range punch\n' +
+        'R: reset orb | Aim with center +\n' +
+        'F: returning knife | H: hints | XR Aim Test v5.1');
+    }
+  }
+});
+</script>
+  <script>
+AFRAME.registerComponent('ledge-climb', {
+  init: function () {
+    this.rig = document.querySelector('#rig');
+    this.view = document.querySelector('#view');
+
+    this.head = new THREE.Vector3();
+    this.correction = new THREE.Vector3();
+    this.nearest = new THREE.Vector3();
+
+    this.ledge = {
+      x: 3,
+      z: -3,
+      width: 2,
+      depth: 1.5,
+      top: 1.45,
+      color: '#FFAA55'
+    };
+
+    this.ledges = [
+      this.ledge,
+      {x: 3, z: -0.6, width: 2, depth: 1.3, top: 0.8, color: '#51BBA8'},
+      {x: 5, z: -2.8, width: 1.8, depth: 1.8, top: 2.05, color: '#538FE8'},
+      {x: 5, z: -5.2, width: 2, depth: 1.8, top: 2.65, color: '#AB80E8'}
+    ];
+
+    this.hands = ['#left', '#right'].map(selector => ({
+      el: document.querySelector(selector),
+      held: false,
+      grabbing: false,
+      anchor: new THREE.Vector3(),
+      world: new THREE.Vector3()
+    }));
+
+    this.hands.forEach(hand => {
+      hand.el.addEventListener('gripdown', () => {
+        if (this.el.is('vr-mode')) {
+          hand.held = true;
+        }
+      });
+
+      hand.el.addEventListener('gripup', () => {
+        hand.held = false;
+      });
+
+      hand.el.addEventListener('controllerdisconnected', () => {
+        this.releaseAll();
+      });
+    });
+
+    this.el.addEventListener('exit-vr', () => {
+      this.releaseAll();
+    });
+
+    this.el.addEventListener('enter-vr', () => {
+      this.releaseAll();
+    });
+
+    window.addEventListener('blur', () => {
+      this.releaseAll();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      this.releaseAll();
+    });
+
+    this.wasClimbing = false;
+    this.cooldownUntil = 0;
+
+    // Scene-space proxy grips stay on the structure, not the rotating rig.
+    this.hands.forEach((hand, index) => {
+      hand.contact = new THREE.Vector3();
+      hand.proxy = new THREE.Group();
+      const material = new THREE.MeshStandardMaterial({
+        color: index === 0 ? 0x55ddff : 0xffd166,
+        roughness: 0.8
+      });
+      const palm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.085, 0.035, 0.10), material
+      );
+      palm.position.set(0, 0.025, 0.018);
+      hand.proxy.add(palm);
+      for (let finger = 0; finger < 4; finger++) {
+        const tip = new THREE.Mesh(
+          new THREE.BoxGeometry(0.016, 0.045, 0.028), material
+        );
+        tip.position.set((finger - 1.5) * 0.021, -0.004, -0.036);
+        hand.proxy.add(tip);
+      }
+      hand.proxy.visible = false;
+      this.el.object3D.add(hand.proxy);
+    });
+    this.launchArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(),
+      0.85, 0xffd166, 0.18, 0.10
+    );
+    this.launchArrow.visible = false;
+    this.el.object3D.add(this.launchArrow);
+    this.previewHead = new THREE.Vector3();
+    this.previewDirection = new THREE.Vector3();
+  },
+
+  launchDirection: function (out) {
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(this.head);
+    out.set(this.head.x - this.ledge.x, 0,
+      this.head.z - this.ledge.z);
+    if (out.lengthSq() < 0.01) {
+      const rotation = new THREE.Quaternion();
+      this.view.object3D.getWorldQuaternion(rotation);
+      out.set(0, 0, 1).applyQuaternion(rotation);
+      out.y = 0;
+    }
+    if (out.lengthSq() < 0.01) out.set(0, 0, 1);
+    return out.normalize();
+  },
+
+  showGrip: function (hand, visible) {
+    hand.proxy.visible = visible;
+    const model = hand.el.getObject3D('mesh');
+    if (visible) {
+      if (model && hand.hiddenModel !== model) {
+        hand.hiddenModel = model;
+        hand.modelWasVisible = model.visible;
+      }
+      if (model) model.visible = false;
+    } else if (hand.hiddenModel) {
+      hand.hiddenModel.visible = hand.modelWasVisible;
+      hand.hiddenModel = null;
+    }
+  },
+
+  updateGripVisuals: function () {
+    let holding = false;
+    this.hands.forEach(hand => {
+      this.showGrip(hand, hand.grabbing);
+      holding = holding || hand.grabbing;
+    });
+    const pack = this.el.components['ability-test'];
+    this.launchArrow.visible = holding && (!pack || pack.hints);
+    if (holding) {
+      this.launchDirection(this.previewDirection);
+      // Show the initial upward-and-outward impulse, not a landing prediction.
+      this.previewDirection.multiplyScalar(3);
+      this.previewDirection.y = 4.2;
+      this.previewDirection.normalize();
+      this.view.object3D.getWorldPosition(this.previewHead);
+      this.previewHead.y -= 0.35;
+      this.launchArrow.position.copy(this.previewHead);
+      this.launchArrow.setDirection(this.previewDirection);
+    }
+  },
+  
+  launch: function (training) {
+    if (!this.hands.some(hand => hand.grabbing)) {
+      return;
+    }
+
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(this.head);
+
+    const direction = this.launchDirection(new THREE.Vector3());
+
+    this.releaseAll();
+    this.cooldownUntil = performance.now() + 450;
+
+    training.grounded = false;
+    training.velocityY = 4.2;
+
+    // A brief horizontal push, separate from stick steering.
+    training.launchVX = direction.x * 3;
+    training.launchVZ = direction.z * 3;
+    training.launchTime = 0.30;
+
+    // Do not inherit an old sprint speed from before climbing.
+    training.takeoffSpeed =
+      training.walkSpeeds[training.walkIndex];
+
+    training.hands.forEach(hand => {
+      hand.ready = false;
+    });
+  },
+
+  releaseAll: function () {
+    this.hands.forEach(hand => {
+      hand.held = false;
+      hand.grabbing = false;
+      this.showGrip(hand, false);
+    });
+    if (this.launchArrow) this.launchArrow.visible = false;
+
+    this.wasClimbing = false;
+
+    if (this.mesh) {
+      this.mesh.setAttribute('color', this.ledge.color);
+    }
+  },
+
+  step: function (training) {
+    if (!training.practicePlatforms) return false;
+
+    // Register all route ledges with the existing landing/side collision system.
+    if (!this.routeBuilt) {
+      this.routeBuilt = true;
+      this.ledges.forEach((ledge, index) => {
+        training.practicePlatforms.push(ledge);
+        const mesh = document.createElement('a-box');
+        mesh.setAttribute('position', {x: ledge.x, y: ledge.top / 2, z: ledge.z});
+        mesh.setAttribute('width', ledge.width);
+        mesh.setAttribute('height', ledge.top);
+        mesh.setAttribute('depth', ledge.depth);
+        mesh.setAttribute('color', ledge.color);
+        this.el.appendChild(mesh);
+        ledge.mesh = mesh;
+        const sign = document.createElement('a-text');
+        sign.classList.add('tutorial-hint');
+        sign.setAttribute('position', {x: ledge.x, y: ledge.top + 0.45, z: ledge.z + ledge.depth / 2 + 0.02});
+        sign.setAttribute('value', index === 0 ? 'ORIGINAL LEDGE' :
+          index === 3 ? 'SUMMIT TARGET' : 'CLIMB ROUTE ' + index);
+        sign.setAttribute('align', 'center');
+        sign.setAttribute('width', 1.7);
+        const pack = this.el.components['ability-test'];
+        sign.object3D.visible = !pack || pack.hints;
+        this.el.appendChild(sign);
+      });
+      this.mesh = this.ledge.mesh;
+    }
+
+    if (!this.el.is('vr-mode')) {
+      this.releaseAll();
+      return false;
+    }
+
+    const now = performance.now();
+    let ledge = this.ledge;
+
+    this.rig.object3D.updateWorldMatrix(true, true);
+
+    this.hands.forEach(hand => {
+      hand.el.object3D.getWorldPosition(hand.world);
+
+      if (!hand.held) {
+        hand.grabbing = false;
+        return;
+      }
+
+      if (hand.grabbing || now < this.cooldownUntil) {
+        return;
+      }
+
+      let ledge = null;
+      let bestDistance = 0.22;
+      const already = this.hands.find(other => other.grabbing);
+      const candidates = already ? [already.ledge] : this.ledges;
+      candidates.forEach(candidate => {
+        const point = new THREE.Vector3(
+          THREE.MathUtils.clamp(hand.world.x, candidate.x - candidate.width / 2,
+            candidate.x + candidate.width / 2), candidate.top,
+          THREE.MathUtils.clamp(hand.world.z, candidate.z - candidate.depth / 2,
+            candidate.z + candidate.depth / 2));
+        const distance = hand.world.distanceTo(point);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          ledge = candidate;
+        }
+      });
+      if (!ledge) return;
+
+      // Find the closest point on this ledge's top.
+      this.nearest.set(
+        THREE.MathUtils.clamp(
+          hand.world.x,
+          ledge.x - ledge.width / 2,
+          ledge.x + ledge.width / 2
+        ),
+        ledge.top,
+        THREE.MathUtils.clamp(
+          hand.world.z,
+          ledge.z - ledge.depth / 2,
+          ledge.z + ledge.depth / 2
+        )
+      );
+
+      if (hand.world.distanceTo(this.nearest) < 0.22) {
+        hand.grabbing = true;
+        hand.ledge = ledge;
+
+        // Anchor at the hand's current position to avoid a snap.
+        hand.anchor.copy(hand.world);
+        // Visual contact is separate from the rebased movement anchor.
+        hand.contact.copy(this.nearest);
+        hand.proxy.position.copy(hand.contact);
+        const dx = (hand.world.x - ledge.x) / (ledge.width / 2);
+        const dz = (hand.world.z - ledge.z) / (ledge.depth / 2);
+        const outside = new THREE.Vector3();
+        if (Math.abs(dx) > Math.abs(dz)) {
+          outside.set(dx >= 0 ? 1 : -1, 0, 0);
+        } else {
+          outside.set(0, 0, dz >= 0 ? 1 : -1);
+        }
+        hand.proxy.rotation.y = Math.atan2(outside.x, outside.z);
+      }
+    });
+
+    this.updateGripVisuals();
+
+    const activeHands = this.hands.filter(hand => hand.grabbing);
+
+    if (activeHands.length > 0) {
+      this.ledge = activeHands[0].ledge;
+      ledge = this.ledge;
+      this.mesh = ledge.mesh;
+      this.ledges.forEach(item => item.mesh.setAttribute('color', item.color));
+      training.launchTime = 0;
+      this.correction.set(0, 0, 0);
+
+      activeHands.forEach(hand => {
+        this.correction.x += hand.anchor.x - hand.world.x;
+        this.correction.y += hand.anchor.y - hand.world.y;
+        this.correction.z += hand.anchor.z - hand.world.z;
+      });
+
+      this.correction.divideScalar(activeHands.length);
+
+      // Limit correction from a single tracking update.
+      this.correction.clampLength(0, 0.12);
+
+      this.rig.object3D.position.add(this.correction);
+
+      training.velocityY = 0;
+      training.grounded = false;
+
+      training.hands.forEach(hand => {
+        hand.ready = false;
+      });
+
+      this.wasClimbing = true;
+      this.mesh.setAttribute('color', '#FFD54F');
+
+      this.updateGripVisuals();
+
+      // No stamina drain while holding. Pause locomotion and gravity.
+      return true;
+    }
+
+    if (this.wasClimbing) {
+      this.wasClimbing = false;
+      this.cooldownUntil = now + 400;
+
+      this.rig.object3D.updateWorldMatrix(true, true);
+      this.view.object3D.getWorldPosition(this.head);
+
+      const highEnough = this.head.y > ledge.top + 0.65;
+
+      const nearLedge =
+        Math.abs(this.head.x - ledge.x) <
+          ledge.width / 2 + 0.65 &&
+        Math.abs(this.head.z - ledge.z) <
+          ledge.depth / 2 + 0.65;
+
+      if (highEnough && nearLedge) {
+        const finishX = THREE.MathUtils.clamp(
+          this.head.x,
+          ledge.x - ledge.width / 2 + 0.3,
+          ledge.x + ledge.width / 2 - 0.3
+        );
+
+        const finishZ = THREE.MathUtils.clamp(
+          this.head.z,
+          ledge.z - ledge.depth / 2 + 0.3,
+          ledge.z + ledge.depth / 2 - 0.3
+        );
+
+        this.rig.object3D.position.x += finishX - this.head.x;
+        this.rig.object3D.position.z += finishZ - this.head.z;
+        this.rig.object3D.position.y = ledge.top;
+
+        training.velocityY = 0;
+        training.grounded = true;
+      } else {
+        training.velocityY = 0;
+        training.grounded = false;
+      }
+
+      this.mesh.setAttribute('color', ledge.color);
+    }
+
+    return false;
+  }
+});
+</script>
+
+<script>
+AFRAME.registerComponent('ability-test', {
+  init: function () {
+    this.hints = true;
+    this.state = 'READY';
+    this.cooldown = 0;
+    this.clock = 0;
+    this.flightAge = 0;
+    this.hp = 100;
+    this.resetAt = 0;
+    this.flashUntil = 0;
+    this.lastHit = 'Aim right controller; press right trigger';
+    this.feedbackUntil = 0;
+    this.hitThisThrow = false;
+    this.origin = new THREE.Vector3();
+    this.next = new THREE.Vector3();
+    this.direction = new THREE.Vector3();
+    this.velocity = new THREE.Vector3();
+    this.deltaVector = new THREE.Vector3();
+    this.point = new THREE.Vector3();
+    this.quaternion = new THREE.Quaternion();
+    this.ray = new THREE.Ray();
+    this.box = new THREE.Box3();
+    this.targetBox = new THREE.Box3();
+    this.summit = {x: 5, z: -5.2, top: 2.65};
+    this.right = document.querySelector('#right');
+    this.view = document.querySelector('#view');
+    this.rig = document.querySelector('#rig');
+    this.handSamples = ['#left', '#right'].map(selector => ({
+      el: document.querySelector(selector), previous: new THREE.Vector3(),
+      ready: false, inside: false, armed: true, nextHit: 0
+    }));
+
+    this.status = document.createElement('a-text');
+    this.status.setAttribute('position', '0 -0.19 -1.2');
+    this.status.setAttribute('align', 'center');
+    this.status.setAttribute('width', 1.35);
+    this.status.setAttribute('color', '#FFD166');
+    this.view.appendChild(this.status);
+
+    this.dummy = document.createElement('a-entity');
+    this.dummy.setAttribute('position', {x: this.summit.x, y: this.summit.top, z: this.summit.z});
+    this.bodyMaterial = new THREE.MeshStandardMaterial({color: 0x26c6da, roughness: 0.7});
+    this.dummyVisual = new THREE.Group();
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.70, 12), this.bodyMaterial);
+    torso.position.y = 0.93;
+    this.dummyVisual.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 10), this.bodyMaterial);
+    head.position.y = 1.48;
+    this.dummyVisual.add(head);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8),
+      new THREE.MeshStandardMaterial({color: 0x8795a1}));
+    post.position.y = 0.30;
+    this.dummyVisual.add(post);
+    this.dummy.setObject3D('mesh', this.dummyVisual);
+    this.el.appendChild(this.dummy);
+    this.targetBox.min.set(this.summit.x - 0.30, this.summit.top + 0.55, this.summit.z - 0.30);
+    this.targetBox.max.set(this.summit.x + 0.30, this.summit.top + 1.70, this.summit.z + 0.30);
+    this.health = document.createElement('a-text');
+    this.health.setAttribute('position', {x: this.summit.x, y: this.summit.top + 2, z: this.summit.z});
+    this.health.setAttribute('align', 'center');
+    this.health.setAttribute('width', 2.6);
+    this.health.setAttribute('value', 'SUMMIT DUMMY\nHP 100 / 100');
+    this.el.appendChild(this.health);
+
+    this.knifeRoot = new THREE.Group();
+    this.knifeVisual = new THREE.Group();
+    const bladeMaterial = new THREE.MeshStandardMaterial({color: 0xe0f7ff, metalness: 0.45, roughness: 0.3});
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.012, 0.26), bladeMaterial);
+    blade.position.z = -0.12;
+    this.knifeVisual.add(blade);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.09, 4), bladeMaterial);
+    tip.rotation.x = -Math.PI / 2;
+    tip.position.z = -0.295;
+    this.knifeVisual.add(tip);
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.13),
+      new THREE.MeshStandardMaterial({color: 0xffb74d}));
+    handle.position.z = 0.07;
+    this.knifeVisual.add(handle);
+    this.knifeRoot.add(this.knifeVisual);
+    this.knifeRoot.visible = false;
+    this.el.object3D.add(this.knifeRoot);
+    this.bladeForward = new THREE.Vector3(0, 0, -1);
+    this.aimMatrix = new THREE.Matrix4();
+    this.aimOrigin = new THREE.Vector3();
+    this.aimDirection = new THREE.Vector3();
+    this.aimEnd = new THREE.Vector3();
+    this.previousWorld = new THREE.Vector3();
+    this.punchDirection = new THREE.Vector3();
+    this.punchBox = this.targetBox.clone().expandByScalar(0.10);
+    this.orbSphere = new THREE.Sphere(new THREE.Vector3(), 0.18);
+    this.throwRequested = false;
+    this.contactHintAt = 0;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    this.aimLine = new THREE.Line(geometry,
+      new THREE.LineBasicMaterial({color: 0x55ddff, transparent: true, opacity: 0.55}));
+    this.aimLine.frustumCulled = false;
+    this.aimLine.visible = false;
+    this.el.object3D.add(this.aimLine);
+    this.aimDot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6),
+      new THREE.MeshBasicMaterial({color: 0x55ddff}));
+    this.aimDot.visible = false;
+    this.el.object3D.add(this.aimDot);
+
+
+    this.right.addEventListener('triggerdown', () => {
+      if (this.el.is('vr-mode')) this.throwRequested = true;
+    });
+    this.right.addEventListener('thumbstickdown', () => {
+      if (this.el.is('vr-mode')) this.toggleHints();
+    });
+    window.addEventListener('keydown', event => {
+      if (event.repeat || this.el.is('vr-mode')) return;
+      if (event.target.closest && event.target.closest('input,textarea,[contenteditable]')) return;
+      if (event.code === 'KeyF') { event.preventDefault(); this.throwRequested = true; }
+      if (event.code === 'KeyH') { event.preventDefault(); this.toggleHints(); }
+    });
+    ['enter-vr', 'exit-vr'].forEach(name => this.el.addEventListener(name, () => this.cancelKnife()));
+    this.right.addEventListener('controllerdisconnected', () => this.cancelKnife());
+    window.addEventListener('blur', () => this.cancelKnife());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.cancelKnife();
+    });
+  },
+
+  readAim: function (origin, direction) {
+    if (!this.el.is('vr-mode')) {
+      this.rig.object3D.updateWorldMatrix(true, true);
+      this.view.object3D.getWorldPosition(origin);
+      this.view.object3D.getWorldQuaternion(this.quaternion);
+      direction.set(0, 0, -1).applyQuaternion(this.quaternion).normalize();
+      return true;
+    }
+    const xr = this.el.renderer.xr;
+    const session = xr.getSession();
+    const frame = xr.getFrame ? xr.getFrame() : this.el.frame;
+    const tracked = this.el.systems['tracked-controls'];
+    const referenceSpace = tracked && tracked.referenceSpace ?
+      tracked.referenceSpace : xr.getReferenceSpace();
+    if (!session || session.visibilityState !== 'visible' || !frame || !referenceSpace) return false;
+    const source = Array.from(session.inputSources).find(input =>
+      input.handedness === 'right' && input.targetRayMode === 'tracked-pointer' && !input.hand);
+    if (!source || !source.targetRaySpace) return false;
+    let pose;
+    try { pose = frame.getPose(source.targetRaySpace, referenceSpace); }
+    catch (error) { return false; }
+    if (!pose) return false;
+    // XR poses are relative to the tracking origin; apply the locomotion parent once.
+    const parent = this.right.object3D.parent;
+    if (!parent) return false;
+    parent.updateWorldMatrix(true, false);
+    this.aimMatrix.fromArray(pose.transform.matrix);
+    this.aimMatrix.premultiply(parent.matrixWorld);
+    origin.setFromMatrixPosition(this.aimMatrix);
+    direction.set(0, 0, -1).transformDirection(this.aimMatrix);
+    return true;
+  },
+
+  segmentSphereDistance: function (start, direction, length, sphere) {
+    if (sphere.containsPoint(start)) return 0;
+    this.ray.set(start, direction);
+    const hit = this.ray.intersectSphere(sphere, this.point);
+    if (!hit) return Infinity;
+    const distance = start.distanceTo(hit);
+    return distance <= length + 0.0001 ? distance : Infinity;
+  },
+
+  updateAimGuide: function (training, valid) {
+    const visible = valid && this.hints;
+    this.aimLine.visible = visible;
+    this.aimDot.visible = visible;
+    if (!visible) return;
+    let distance = 9;
+    if (this.hp > 0) distance = Math.min(distance,
+      this.segmentDistance(this.aimOrigin, this.aimDirection, 9, this.targetBox));
+    if (training.hp > 0 && !training.resetAt) {
+      training.target.object3D.getWorldPosition(this.orbSphere.center);
+      distance = Math.min(distance,
+        this.segmentSphereDistance(this.aimOrigin, this.aimDirection, 9, this.orbSphere));
+    }
+    (training.practicePlatforms || []).forEach(platform => {
+      this.box.min.set(platform.x - platform.width / 2, 0, platform.z - platform.depth / 2);
+      this.box.max.set(platform.x + platform.width / 2, platform.top, platform.z + platform.depth / 2);
+      distance = Math.min(distance, this.box.containsPoint(this.aimOrigin) ? 0 :
+        this.segmentDistance(this.aimOrigin, this.aimDirection, 9, this.box));
+    });
+    this.aimEnd.copy(this.aimOrigin).addScaledVector(this.aimDirection, distance);
+    const attribute = this.aimLine.geometry.attributes.position;
+    attribute.setXYZ(0, this.aimOrigin.x, this.aimOrigin.y, this.aimOrigin.z);
+    attribute.setXYZ(1, this.aimEnd.x, this.aimEnd.y, this.aimEnd.z);
+    attribute.needsUpdate = true;
+    this.aimDot.position.copy(this.aimEnd);
+  },
+
+  toggleHints: function () {
+    this.hints = !this.hints;
+    const training = this.el.components['training-v4'];
+    if (training) training.lastHUD = '';
+    this.el.querySelectorAll('.tutorial-hint').forEach(el => {
+      el.object3D.visible = this.hints;
+    });
+    const climbing = this.el.components['ledge-climb'];
+    if (climbing) climbing.updateGripVisuals();
+    this.lastHit = 'Hints ' + (this.hints ? 'ON' : 'OFF');
+    this.feedbackUntil = this.clock + 1.5;
+    if (!this.hints) { this.aimLine.visible = false; this.aimDot.visible = false; }
+  },
+
+  cancelKnife: function () {
+    this.throwRequested = false;
+    if (this.aimLine) this.aimLine.visible = false;
+    if (this.aimDot) this.aimDot.visible = false;
+    this.state = 'READY';
+    this.cooldown = 0;
+    this.flightAge = 0;
+    this.knifeRoot.visible = false;
+    this.handSamples.forEach(hand => { hand.ready = false; });
+  },
+
+  throwKnife: function () {
+    if (document.hidden || this.state !== 'READY' || this.cooldown > 0) return;
+    const vr = this.el.is('vr-mode');
+    if (vr) {
+      const session = this.el.renderer.xr.getSession();
+      if (session && session.visibilityState !== 'visible') return;
+      const training = this.el.components['training-v4'];
+      if (!training || !training.hands.some(hand => hand.el === this.right && hand.connected)) return;
+    }
+    if (!this.readAim(this.origin, this.direction)) {
+      this.lastHit = 'XR AIM UNAVAILABLE - try again when tracking returns';
+      this.feedbackUntil = this.clock + 1.5;
+      return;
+    }
+    this.knifeRoot.position.copy(this.origin);
+    this.velocity.copy(this.direction).multiplyScalar(10);
+    this.knifeRoot.quaternion.setFromUnitVectors(this.bladeForward, this.direction);
+    this.knifeVisual.rotation.set(0, 0, 0);
+    this.distanceTravelled = 0;
+    this.flightAge = 0;
+    this.hitThisThrow = false;
+    this.state = 'OUTBOUND';
+    this.knifeRoot.visible = true;
+  },
+
+  damageDummy: function (amount, source) {
+    if (this.hp <= 0) return;
+    this.hp = Math.max(0, this.hp - amount);
+    this.lastHit = source + ' HIT -' + amount;
+    this.feedbackUntil = this.clock + 1.5;
+    this.flashUntil = this.clock + 0.18;
+    if (this.hp === 0) {
+      this.lastHit = 'DUMMY COMPLETE! Resetting on summit';
+      this.resetAt = this.clock + 2;
+      this.feedbackUntil = this.clock + 2;
+    }
+    this.health.setAttribute('value', this.hp > 0 ?
+      'SUMMIT DUMMY\nHP ' + this.hp + ' / 100' : 'COMPLETE!\nReset in 2 seconds');
+  },
+
+  segmentDistance: function (start, direction, length, box) {
+    this.ray.set(start, direction);
+    const hit = this.ray.intersectBox(box, this.point);
+    if (!hit) return Infinity;
+    const distance = start.distanceTo(hit);
+    return distance <= length + 0.0001 ? distance : Infinity;
+  },
+
+  stepKnife: function (dt, training) {
+    if (this.state === 'READY') return;
+    this.flightAge += dt;
+    if (this.flightAge > 6) { this.cancelKnife(); return; }
+    this.knifeVisual.rotation.x += dt * 18;
+    if (this.state === 'OUTBOUND') {
+      const length = Math.min(10 * dt, 9 - this.distanceTravelled);
+      this.direction.copy(this.velocity).normalize();
+      const position = this.knifeRoot.position;
+      let targetDistance = this.hp > 0 && !this.hitThisThrow ?
+        this.segmentDistance(position, this.direction, length, this.targetBox) : Infinity;
+      let hitKind = 'dummy';
+      if (!this.hitThisThrow && training.hp > 0 && !training.resetAt) {
+        training.target.object3D.getWorldPosition(this.orbSphere.center);
+        const orbDistance = this.segmentSphereDistance(position, this.direction, length, this.orbSphere);
+        if (orbDistance < targetDistance) { targetDistance = orbDistance; hitKind = 'orb'; }
+      }
+      let wallDistance = Infinity;
+      (training.practicePlatforms || []).forEach(platform => {
+        this.box.min.set(platform.x - platform.width / 2, 0, platform.z - platform.depth / 2);
+        this.box.max.set(platform.x + platform.width / 2, platform.top, platform.z + platform.depth / 2);
+        // If a throw starts inside a solid, recall it rather than shoot through.
+        const distance = this.box.containsPoint(position) ? 0 :
+          this.segmentDistance(position, this.direction, length, this.box);
+        wallDistance = Math.min(wallDistance, distance);
+      });
+      if (Number.isFinite(targetDistance) && targetDistance < wallDistance) {
+        position.addScaledVector(this.direction, targetDistance);
+        this.hitThisThrow = true;
+        if (hitKind === 'orb') {
+          training.damage(25);
+          this.lastHit = 'ORB KNIFE HIT -25';
+          this.feedbackUntil = this.clock + 1.5;
+        } else {
+          this.damageDummy(25, 'KNIFE');
+        }
+        this.state = 'RETURNING';
+      } else if (Number.isFinite(wallDistance)) {
+        position.addScaledVector(this.direction, Math.max(0, wallDistance - 0.025));
+        this.state = 'RETURNING';
+        this.lastHit = 'BLOCKED - knife returning';
+        this.feedbackUntil = this.clock + 1;
+      } else {
+        position.addScaledVector(this.direction, length);
+        this.distanceTravelled += length;
+        if (this.distanceTravelled >= 8.999) this.state = 'RETURNING';
+      }
+    } else if (this.state === 'RETURNING') {
+      const source = this.el.is('vr-mode') ? this.right : this.view;
+      this.rig.object3D.updateWorldMatrix(true, true);
+      source.object3D.getWorldPosition(this.origin);
+      this.deltaVector.copy(this.origin).sub(this.knifeRoot.position);
+      const distance = this.deltaVector.length();
+      if (distance <= Math.max(0.15, 14 * dt)) {
+        this.knifeRoot.visible = false;
+        this.state = 'READY';
+        this.cooldown = 0.45;
+      } else {
+        this.direction.copy(this.deltaVector).normalize();
+        this.knifeRoot.position.addScaledVector(this.direction, 14 * dt);
+        this.knifeRoot.quaternion.setFromUnitVectors(this.bladeForward, this.direction);
+      }
+    }
+  },
+
+  tick: function (time, delta) {
+    if (document.hidden || !delta || delta > 100) return;
+    if (this.el.is('vr-mode')) {
+      const session = this.el.renderer.xr.getSession();
+      if (session && session.visibilityState !== 'visible') { this.cancelKnife(); return; }
+    }
+    const training = this.el.components['training-v4'];
+    if (!training) return;
+    const dt = delta / 1000;
+    this.clock += dt;
+    this.cooldown = Math.max(0, this.cooldown - dt);
+    const aimValid = this.readAim(this.aimOrigin, this.aimDirection);
+    this.updateAimGuide(training, aimValid);
+    if (this.throwRequested) {
+      this.throwRequested = false;
+      this.throwKnife();
+    }
+    this.stepKnife(dt, training);
+    if (this.resetAt && this.clock >= this.resetAt) {
+      this.resetAt = 0;
+      this.hp = 100;
+      this.health.setAttribute('value', 'SUMMIT DUMMY\nHP 100 / 100');
+    }
+    this.bodyMaterial.color.setHex(this.hp === 0 ? 0xffd54f :
+      this.clock < this.flashUntil ? 0xff7043 : 0x26c6da);
+    this.view.object3D.getWorldPosition(this.origin);
+    this.health.object3D.lookAt(this.origin);
+
+    const climbing = this.el.components['ledge-climb'];
+    this.handSamples.forEach(sample => {
+      const tracked = training.hands.find(hand => hand.el === sample.el);
+      if (!this.el.is('vr-mode') || !tracked || !tracked.connected) { sample.ready = false; return; }
+      const object = sample.el.object3D;
+      const local = object.position;
+      object.updateWorldMatrix(true, false);
+      object.getWorldPosition(this.next);
+      this.targetBox.clampPoint(this.next, this.point);
+      const contactDistance = this.point.distanceTo(this.next);
+      const touching = contactDistance <= 0.10;
+      const gripping = climbing && climbing.hands.some(hand => hand.el === sample.el && hand.grabbing);
+      if (contactDistance > 0.18) sample.armed = true;
+      if (sample.ready && !gripping) {
+        // Apply today's parent transform to the previous local sample, excluding
+        // rig locomotion/snap turning from the measured physical fist movement.
+        this.previousWorld.copy(sample.previous).applyMatrix4(object.parent.matrixWorld);
+        this.punchDirection.copy(this.next).sub(this.previousWorld);
+        const travel = this.punchDirection.length();
+        const speed = local.distanceTo(sample.previous) / dt;
+        let swept = this.punchBox.containsPoint(this.previousWorld) || touching;
+        if (!swept && travel > 0.00001) {
+          this.punchDirection.multiplyScalar(1 / travel);
+          swept = Number.isFinite(this.segmentDistance(this.previousWorld,
+            this.punchDirection, travel, this.punchBox));
+        }
+        if (sample.armed && swept && speed >= 0.45 && this.clock >= sample.nextHit && this.hp > 0) {
+          this.damageDummy(20, 'PUNCH');
+          sample.nextHit = this.clock + 0.35;
+          sample.armed = false;
+        } else if (touching && this.hints && this.hp > 0 && this.clock >= this.contactHintAt &&
+                   this.clock >= sample.nextHit) {
+          this.lastHit = 'HAND CONTACT - pull back, then make a small punch';
+          this.feedbackUntil = this.clock + 0.8;
+          this.contactHintAt = this.clock + 1;
+        }
+      }
+      if (gripping) sample.armed = false;
+      sample.previous.copy(local);
+      sample.ready = true;
+      sample.inside = touching;
+    });
+
+    const holding = climbing && climbing.hands.some(hand => hand.grabbing);
+    const state = holding ? 'HOLD | Stamina ' + Math.ceil(training.stamina) + '/100 (no drain)' : '';
+    const knifeState = this.state === 'READY' && this.cooldown > 0 ? 'RECOVERING' : this.state;
+    let text = 'XR AIM TEST v5.1 | KNIFE ' + knifeState;
+    if (state) text += '\n' + state;
+    if (this.clock < this.feedbackUntil) text += '\n' + this.lastHit;
+    else if (this.hints) text += this.el.is('vr-mode') ?
+      '\nRight trigger: knife | R-stick click: hints' : '\nF: knife | H: hints';
+    if (text !== this.lastStatus) {
+      this.status.setAttribute('value', text);
+      this.lastStatus = text;
+    }
+  }
+});
+</script>
+
+</head>
+
+<body>
+
+<div id="hud">Loading XR Aim Test v5.1...</div>
+<div id="crosshair">+</div>
+
+<a-scene
+  training-v4
+  ledge-climb
+  ability-test
+  background="color: #182333">
+
+  <a-light
+    type="ambient"
+    intensity="1">
+  </a-light>
+
+  <a-light
+    type="directional"
+    position="2 5 3"
+    intensity="1">
+  </a-light>
+
+  <a-plane
+    rotation="-90 0 0"
+    width="18"
+    height="18"
+    color="#52616B">
+  </a-plane>
+
+  <!-- Virtual walking boundary -->
+
+  <a-box
+    position="0 0.015 -7.3"
+    width="14.6"
+    height="0.03"
+    depth="0.08"
+    color="#FFD54F">
+  </a-box>
+
+  <a-box
+    position="0 0.015 7.3"
+    width="14.6"
+    height="0.03"
+    depth="0.08"
+    color="#FFD54F">
+  </a-box>
+
+  <a-box
+    position="-7.3 0.015 0"
+    width="0.08"
+    height="0.03"
+    depth="14.6"
+    color="#FFD54F">
+  </a-box>
+
+  <a-box
+    position="7.3 0.015 0"
+    width="0.08"
+    height="0.03"
+    depth="14.6"
+    color="#FFD54F">
+  </a-box>
+
+  <a-ring
+    position="0 0.02 0"
+    rotation="-90 0 0"
+    radius-inner="0.65"
+    radius-outer="0.72"
+    color="#26C6DA">
+  </a-ring>
+
+  <!-- Visual landmarks: no collision yet -->
+
+  <a-box
+    position="-2 1.5 -5"
+    width="0.6"
+    height="3"
+    depth="0.6"
+    color="#8795A1">
+  </a-box>
+
+  <a-box
+    position="2 1.5 -5"
+    width="0.6"
+    height="3"
+    depth="0.6"
+    color="#8795A1">
+  </a-box>
+
+  <a-box
+    position="0 3.2 -5"
+    width="4.6"
+    height="0.4"
+    depth="0.6"
+    color="#8795A1">
+  </a-box>
+
+  <a-box
+    position="4 0.5 0"
+    color="#EF8C62">
+  </a-box>
+
+  <a-box
+    position="-4 0.5 0"
+    color="#9276C5">
+  </a-box>
+
+  <!-- Instructions -->
+
+  <a-plane class="tutorial-hint"
+    position="-3 1.7 -3"
+    width="2.8"
+    height="2.4"
+    color="#17202B">
+  </a-plane>
+
+  <a-text class="tutorial-hint"
+    position="-3 1.7 -2.98"
+    align="center"
+    width="2.5"
+    color="white"
+    value="VR CONTROLS\nLeft stick: move\nRight stick: turn\nA: jump / ledge launch\nLeft stick click: sprint\nX: smooth / snap\nY: turning speed\nB: walking speed\nLeft trigger: reset orb\nRight trigger: knife\nRight stick click: hints">
+  </a-text>
+
+  <a-text
+    position="0 2.5 -5"
+    align="center"
+    width="4"
+    color="white"
+    value="DESCENT VR\nXR AIM TEST v5.1">
+  </a-text>
+
+  <!-- Practice target -->
+
+  <a-sphere
+    id="target"
+    position="0 1.4 -0.65"
+    radius="0.18"
+    color="#26C6DA">
+  </a-sphere>
+
+  <a-text
+    id="health"
+    position="0 1.7 -0.65"
+    value="HP 100 / 100"
+    align="center"
+    width="0.8"
+    color="white">
+  </a-text>
+
+  <!-- Player -->
+
+  <a-entity id="rig">
+
+    <a-entity
+      id="view"
+      camera
+      position="0 1.6 0"
+      look-controls>
+
+      <a-text
+        id="vrhud"
+        position="0 -0.4 -1.3"
+        align="center"
+        width="1.4"
+        color="white">
+      </a-text>
+
+    </a-entity>
+
+    <a-entity
+      id="left"
+      meta-touch-controls="hand: left">
+    </a-entity>
+
+    <a-entity
+      id="right"
+      meta-touch-controls="hand: right">
+    </a-entity>
+
+  </a-entity>
+
+</a-scene>
+</body>
+</html>
