@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Descent VR - Wrist Lab v6.2.10</title>
+<title>VR Starter-v2 - Baseline 2 - Xbox Controls</title>
 <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
 <style>
@@ -102,6 +102,11 @@ body.game-paused #mobile-controls { display:none !important; }
 #input-layout-settings button { margin:4px 6px 4px 0; min-height:38px; padding:6px 12px; border:1px solid #6c9fbd; border-radius:6px; background:#294c69; color:white; touch-action:manipulation; }
 #input-layout-settings button[aria-pressed="true"] { background:#367449; border-color:#a4ebaa; }
 #input-layout-settings p { margin:6px 0 0; font-size:12px; line-height:1.4; }
+
+#gamepad-status { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); max-width:85vw; z-index:26; padding:5px 9px; border-radius:6px; color:#d8faff; background:#102434dd; font:11px Arial,sans-serif; pointer-events:none; text-align:center; }
+body.immersive #gamepad-status { display:none; }
+body.using-gamepad #mobile-controls { display:none !important; }
+#pause-overlay button:focus-visible, #pause-overlay button:focus { outline:3px solid #ffe18a; outline-offset:2px; }
 </style>
 
 <script>
@@ -484,6 +489,8 @@ AFRAME.registerComponent('training-v4', {
   },
 
   tick: function (time, delta) {
+    const gamepad = this.el.components['standard-gamepad'];
+    if (gamepad) gamepad.update(time, delta);
     if (this.el.components['pause-menu'] && this.el.components['pause-menu'].opened) return;
     if (document.hidden || !delta || delta > 100) {
       this.clearInput();
@@ -548,10 +555,11 @@ AFRAME.registerComponent('training-v4', {
     }
 
     const touch = this.el.components['touch-controls'];
-    let x = vr ? this.axes.x : (touch && touch.moving ? touch.moveX :
+    const padMove = gamepad && gamepad.moving;
+    let x = vr ? this.axes.x : (touch && touch.moving ? touch.moveX : padMove ? gamepad.moveX :
       Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')));
 
-    let y = vr ? this.axes.y : (touch && touch.moving ? touch.moveY :
+    let y = vr ? this.axes.y : (touch && touch.moving ? touch.moveY : padMove ? gamepad.moveY :
       Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')));
 
     const magnitude = Math.hypot(x, y);
@@ -572,7 +580,7 @@ AFRAME.registerComponent('training-v4', {
 
     const sprintHeld = vr
       ? this.grip
-      : this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || (touch && touch.sprint);
+      : this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || (touch && touch.sprint) || (gamepad && gamepad.sprint);
 
     if (
       this.exhausted &&
@@ -949,7 +957,7 @@ AFRAME.registerComponent('training-v4', {
           : 'READY';
 
     const status =
-      'WRIST LAB v6.2.10 | ' +
+      'STARTER-v2 B2 | ' +
       (vr ? 'VR' : 'DESKTOP') + '\n' +
       'Stamina ' +
       Math.ceil(this.stamina) +
@@ -2108,7 +2116,7 @@ AFRAME.registerComponent('ability-test', {
     const state = holding ? 'HOLD | Stamina ' + Math.ceil(training.stamina) + '/100 (grip costs 0)' : '';
     const knifeState = this.state === 'READY' && this.cooldown > 0 ? 'RECOVERING' : this.state;
     const cutter = this.el.components['plasma-cutter'];
-    let text = 'WRIST LAB v6.2.10 | ' + (cutter && cutter.active ?
+    let text = 'STARTER-v2 B2 | ' + (cutter && cutter.active ?
       'CUTTER ' + (cutter.owningHand || 'right').toUpperCase() + ' ' + cutter.state + (cutter.ignited ? ' ON' : ' OFF') +
       (cutter.guiding ? ' | TETHER -2/s' : '') +
       (cutter.state !== 'HELD' ? ' | ' + cutter.root.position.distanceTo(cutter.origin).toFixed(1) + 'm' : '') : 'KNIFE ' + knifeState);
@@ -2825,9 +2833,9 @@ AFRAME.registerComponent('plasma-cutter', {
     } else {
       const touch = this.el.components['touch-controls'];
       const depthAxis = Number(this.controlKeys.has('KeyI')) - Number(this.controlKeys.has('KeyK')) +
-        (touch ? touch.depthAxis : 0);
+        (touch ? touch.depthAxis : 0) + (this.el.components['standard-gamepad'] ? this.el.components['standard-gamepad'].depthAxis : 0);
       const rollAxis = Number(this.controlKeys.has('KeyL')) - Number(this.controlKeys.has('KeyJ')) +
-        (touch ? touch.rollAxis : 0);
+        (touch ? touch.rollAxis : 0) + (this.el.components['standard-gamepad'] ? this.el.components['standard-gamepad'].rollAxis : 0);
       this.remoteDepth = THREE.MathUtils.clamp(this.remoteDepth + depthAxis * 3 * dt, 0.5, 12);
       this.remoteRoll += rollAxis * 1.8 * dt;
       this.controlDesired.copy(this.controlRelative);
@@ -3363,7 +3371,7 @@ AFRAME.registerComponent('touch-controls', {
     if (this.sprintButton.textContent !== sprintText) this.sprintButton.textContent = sprintText;
     this.sprintButton.classList.toggle('active',this.sprint);
     this.sprintButton.setAttribute('aria-pressed',String(this.sprint));
-    const status = 'v6.2.10 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
+    const status = 'Starter-v2 B2 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
       ' | ' + Math.ceil(training.stamina) + '%';
     if (this.status.textContent !== status) this.status.textContent = status;
   }
@@ -3480,7 +3488,7 @@ AFRAME.registerComponent('pause-menu', {
   toggle: function () { this.setOpen(!this.opened); },
 
   help: function () {
-    return 'QUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nObject transfer and left-trigger ownership are not in this build yet.';
+    return 'XBOX / STANDARD GAMEPAD\nLeft stick: move | Right stick: look\nL-stick click: sprint toggle | A: jump\nRT: throw / hold tether; release: hover\nLT: punch / cutter swing | B: retrieve cutter\nX: equip/stow cutter | Y: blade power\nLB: park remote cutter | RB: anchor toggle\nD-pad up/down: depth | left/right: roll\nMenu: pause | View: aim/grip hints\nPaused: D-pad select, A confirm, B resume\nTracked-hand climbing/handoff: Quest only\n\nQUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nCutter handoff uses both close grips; tether follows the owning hand.';
   },
 
   setOpen: function (value) {
@@ -3754,11 +3762,82 @@ AFRAME.registerComponent('input-layout', {
 });
 </script>
 
+<script>
+
+AFRAME.registerComponent('standard-gamepad', {
+ init:function(){
+  this.moveX=this.moveY=this.depthAxis=this.rollAxis=0;
+  this.sprint=this.moving=this.armed=this.rtOwned=false;
+  this.index=null;this.previous=[];this.menuIndex=0;this.nextMenu=0;this.nextMelee=0;
+  this.status=document.createElement('div');this.status.id='gamepad-status';
+  this.status.textContent='Xbox: connect, focus game, press and release a button';document.body.appendChild(this.status);
+  this.resetListener=()=>this.reset(true);
+  this.otherListener=()=>{this.reset(true);document.body.classList.remove('using-gamepad');};
+  window.addEventListener('blur',this.resetListener);document.addEventListener('visibilitychange',this.resetListener);
+  window.addEventListener('gamepaddisconnected',this.resetListener);
+  window.addEventListener('pointerdown',this.otherListener,true);window.addEventListener('keydown',this.otherListener,true);
+  this.el.addEventListener('enter-vr',this.resetListener);this.el.addEventListener('exit-vr',this.resetListener);
+ },
+ reset:function(disarm){
+  this.moveX=this.moveY=this.depthAxis=this.rollAxis=0;this.sprint=this.moving=false;if(disarm)this.armed=false;
+  const c=this.el.components['plasma-cutter'],fx=this.el.components['ability-test'];
+  if(this.rtOwned&&c){c.clearTrigger();c.lastTapAt=-100;if(c.state==='CONTROLLED')c.hover(false);}
+  if(this.rtOwned&&fx)fx.throwRequested=false;this.rtOwned=false;
+ },
+ stick:function(x,y){
+  x=Number.isFinite(x)?x:0;y=Number.isFinite(y)?y:0;
+  const n=Math.hypot(x,y);if(n<=0.18)return[0,0];const k=Math.min(1,(n-0.18)/0.82)/n;return[x*k,y*k];
+ },
+ menuButtons:function(){const m=this.el.components['pause-menu'];return m&&m.overlay?Array.from(m.overlay.querySelectorAll('button')).filter(b=>!b.disabled):[];},
+ focusMenu:function(){const b=this.menuButtons()[this.menuIndex];if(b)b.focus({preventScroll:true});},
+ update:function(time,delta){
+  const c=this.el.components,t=c['training-v4'],m=c['pause-menu'],w=c['plasma-cutter'],fx=c['ability-test'];
+  if(!t||!m||!w||!fx)return;
+  if(this.el.is('vr-mode')||document.hidden||!document.hasFocus()||!delta||delta>100){this.reset(true);return;}
+  let pads;try{pads=navigator.getGamepads?Array.from(navigator.getGamepads()):[];}catch(e){this.reset(true);this.status.textContent='Gamepad API blocked/unavailable';return;}
+  const valid=p=>p&&p.connected&&p.mapping==='standard';
+  const p=pads.find(p=>valid(p)&&p.index===this.index)||pads.find(valid);
+  if(!p){this.reset(true);this.index=null;this.status.textContent=pads.some(Boolean)?'Standard controller mapping required':'Xbox: connect, focus game, press and release a button';return;}
+  const b=p.buttons.map(b=>!!b.pressed||b.value>0.55),down=i=>!!b[i],edge=i=>down(i)&&!this.previous[i];
+  const [mx,my]=this.stick(p.axes[0],p.axes[1]),[lx,ly]=this.stick(p.axes[2],p.axes[3]);
+  if(p.index!==this.index){this.reset(true);this.index=p.index;}
+  if(!this.armed){this.previous=b.slice();if(!b.some(Boolean)&&!mx&&!my&&!lx&&!ly)this.armed=true;this.status.textContent=this.armed?'Xbox ready | Menu: controls':'Xbox: release all controls';return;}
+  if(document.activeElement&&document.activeElement.closest('input,textarea,[contenteditable]')){this.reset(true);this.previous=b.slice();return;}
+  if(mx||my||lx||ly||b.some(Boolean))document.body.classList.add('using-gamepad');
+  if(edge(9)){this.reset(false);m.toggle();this.menuIndex=0;this.nextMenu=time+200;this.previous=b.slice();this.focusMenu();return;}
+  if(m.opened){
+   this.reset(false);
+   const d=down(13)||down(15)||my>0.55?1:down(12)||down(14)||my< -0.55?-1:0;
+   if(d&&time>=this.nextMenu){const list=this.menuButtons();if(list.length)this.menuIndex=(this.menuIndex+d+list.length)%list.length;this.nextMenu=time+220;this.focusMenu();}
+   if(edge(1))m.setOpen(false);else if(edge(0)){const target=this.menuButtons()[this.menuIndex];if(target)target.click();}
+   this.previous=b.slice();this.status.textContent='Xbox menu: D-pad select | A confirm | B/Menu resume';return;
+  }
+  this.moveX=mx;this.moveY=my;this.moving=!!(mx||my);
+  if(edge(10))this.sprint=!this.sprint;if(t.exhausted)this.sprint=false;
+  this.depthAxis=Number(down(12))-Number(down(13));this.rollAxis=Number(down(15))-Number(down(14));
+  const look=t.view.components['look-controls'],dt=delta/1000;
+  if(look&&look.yawObject&&look.pitchObject){look.yawObject.rotation.y-=lx*105*Math.PI/180*dt;look.pitchObject.rotation.x=THREE.MathUtils.clamp(look.pitchObject.rotation.x-ly*75*Math.PI/180*dt,-85*Math.PI/180,85*Math.PI/180);}
+  if(edge(0))t.jump();if(edge(2))w.toggleEquip();if(edge(3))w.toggleBlade();
+  if(edge(1)&&w.active)w.recall('XBOX RETRIEVE');if(edge(5))w.toggleAnchor();if(edge(8))fx.toggleHints();
+  if(edge(6))fx.unlockAudio();if(down(6)&&time>=this.nextMelee){t.desktopPunch();this.nextMelee=time+350;}
+  if(edge(7)){fx.unlockAudio();this.rtOwned=true;fx.requestPrimary();}
+  if(!down(7)&&this.previous[7]){if(this.rtOwned)w.endPress();this.rtOwned=false;}
+  if(edge(4)&&w.active&&w.state!=='HELD'&&w.state!=='RETURNING'){w.clearTrigger();w.hover(false);fx.throwRequested=false;this.rtOwned=false;}
+  this.previous=b.slice();this.status.textContent='Starter-v2 B2 | Xbox | '+(w.active?'CUTTER '+w.state:'KNIFE')+(this.sprint?' | SPRINT':'')+' | Menu: controls';
+ },
+ remove:function(){
+  this.reset(true);window.removeEventListener('blur',this.resetListener);document.removeEventListener('visibilitychange',this.resetListener);
+  window.removeEventListener('gamepaddisconnected',this.resetListener);window.removeEventListener('pointerdown',this.otherListener,true);window.removeEventListener('keydown',this.otherListener,true);
+  this.el.removeEventListener('enter-vr',this.resetListener);this.el.removeEventListener('exit-vr',this.resetListener);this.status.remove();document.body.classList.remove('using-gamepad');
+ }
+});
+
+</script>
 </head>
 
 <body>
 
-<div id="hud">Loading Wrist Lab v6.2.10...</div>
+<div id="hud">Loading Starter-v2 B2...</div>
 <div id="crosshair">+</div>
 
 <a-scene
@@ -3769,6 +3848,7 @@ AFRAME.registerComponent('input-layout', {
   touch-controls
   pause-menu
   input-layout
+  standard-gamepad
   ascent-run
   background="color: #182333">
 
@@ -3877,7 +3957,7 @@ AFRAME.registerComponent('input-layout', {
     align="center"
     width="4"
     color="white"
-    value="DESCENT VR\nWRIST LAB v6.2.10">
+    value="STARTER-v2\nBASELINE 2 - XBOX">
   </a-text>
 
   <!-- Practice target -->
