@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VR Starter-v2 - Baseline 3 - Triple Jump and Shared Holds</title>
+<title>VR Starter-v2 - Baseline 4 - Anchor Regrip</title>
 <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
 <style>
@@ -109,6 +109,8 @@ body.using-gamepad #mobile-controls { display:none !important; }
 #pause-overlay button:focus-visible, #pause-overlay button:focus { outline:3px solid #ffe18a; outline-offset:2px; }
 
 #touch-actions button[data-action="anchor"] { left:16px; bottom:calc(var(--stick-size) + 86px + env(safe-area-inset-bottom,0px)); width:82px; height:38px; border-radius:20px; font-size:10px; }
+
+#touch-actions button[data-action="hold"] { left:108px; bottom:calc(var(--stick-size) + 86px + env(safe-area-inset-bottom,0px)); width:72px; height:38px; border-radius:20px; font-size:10px; }
 </style>
 
 <script>
@@ -360,6 +362,12 @@ AFRAME.registerComponent('training-v4', {
       return;
     }
 
+    const assist = this.el.components['anchor-assist'];
+    if (!this.inVR() && assist && assist.latched) {
+      assist.release(true);
+      this.grounded = true; // Use the same takeoff allowance as jumping from this support.
+      this.jumpsUsed = 0;
+    }
     // Quest keeps its ground jump / physical ledge launch. Non-VR gets two air boosts.
     if (this.inVR()) {
       if (!this.grounded) return;
@@ -568,6 +576,8 @@ AFRAME.registerComponent('training-v4', {
     }
 
 
+    const assist = this.el.components['anchor-assist'];
+    if (assist && assist.step(this, dt)) return;
     const climbing = this.el.components['ledge-climb'];
     if (climbing && climbing.step(this)) {
       return;
@@ -769,6 +779,7 @@ AFRAME.registerComponent('training-v4', {
     // Find a platform top crossed while descending.
     if (this.velocityY <= 0) {
       this.practicePlatforms.forEach(platform => {
+        if (platform.supportOnly && platform.ownerRigId !== this.rig.id) return;
         const overPlatform =
           Math.abs(this.head.x - platform.x) <
             platform.width / 2 + playerRadius * 0.5 &&
@@ -801,7 +812,7 @@ AFRAME.registerComponent('training-v4', {
 
     // A suspended anchor is a thin slab, including its visible underside.
     if (this.velocityY > 0) {
-      this.practicePlatforms.filter(platform => platform.dynamicWeapon).forEach(platform => {
+      this.practicePlatforms.filter(platform => platform.dynamicWeapon && !platform.supportOnly).forEach(platform => {
         const feet = this.rig.object3D.position.y;
         const under = Math.abs(this.head.x-platform.x) < platform.width/2 + playerRadius &&
           Math.abs(this.head.z-platform.z) < platform.depth/2 + playerRadius;
@@ -814,8 +825,9 @@ AFRAME.registerComponent('training-v4', {
       });
     }
 
-    // Resolve simple collisions against platform sides.
+    // Owner-only anchor supports are one-way footholds, not blocking obstacles.
     this.practicePlatforms.forEach(platform => {
+      if (platform.supportOnly) return;
       const feetY = this.rig.object3D.position.y;
       const bodyTop = feetY + playerHeight;
 
@@ -862,6 +874,7 @@ AFRAME.registerComponent('training-v4', {
       this.rig.object3D.position.y > 0
     ) {
       const supported = this.practicePlatforms.some(platform => {
+        if (platform.supportOnly && platform.ownerRigId !== this.rig.id) return false;
         const atTop =
           Math.abs(
             this.rig.object3D.position.y - platform.top
@@ -992,7 +1005,7 @@ AFRAME.registerComponent('training-v4', {
           : 'READY';
 
     const status =
-      'STARTER-v2 B3 | ' +
+      'STARTER-v2 B4 | ' +
       (vr ? 'VR' : 'DESKTOP') + '\n' +
       'Stamina ' +
       Math.ceil(this.stamina) +
@@ -1772,6 +1785,7 @@ AFRAME.registerComponent('ability-test', {
   blockingDistance: function (start, direction, length, training) {
     let nearest = Infinity;
     const check = solid => {
+      if (solid.supportOnly) return;
       this.box.min.set(solid.x - solid.width / 2, solid.bottom || 0, solid.z - solid.depth / 2);
       this.box.max.set(solid.x + solid.width / 2, solid.top, solid.z + solid.depth / 2);
       const distance = this.box.containsPoint(start) ? 0 : this.segmentDistance(start, direction, length, this.box);
@@ -2153,7 +2167,7 @@ AFRAME.registerComponent('ability-test', {
     const state = holding ? 'HOLD | Stamina ' + Math.ceil(training.stamina) + '/100 (grip costs 0)' : '';
     const knifeState = this.state === 'READY' && this.cooldown > 0 ? 'RECOVERING' : this.state;
     const cutter = this.el.components['plasma-cutter'];
-    let text = 'STARTER-v2 B3 | ' + (cutter && cutter.active ?
+    let text = 'STARTER-v2 B4 | ' + (cutter && cutter.active ?
       'CUTTER ' + (cutter.owningHand || 'right').toUpperCase() + ' ' + cutter.state + (cutter.ignited ? ' ON' : ' OFF') +
       (cutter.guiding ? ' | TETHER -2/s' : '') +
       (cutter.state !== 'HELD' ? ' | ' + cutter.root.position.distanceTo(cutter.origin).toFixed(1) + 'm' : '') : 'KNIFE ' + knifeState);
@@ -2293,15 +2307,15 @@ AFRAME.registerComponent('plasma-cutter', {
     this.root.visible = false;
     this.el.object3D.add(this.root);
     this.anchorVisual = document.createElement('a-box');
-    this.anchorVisual.setAttribute('width',1.4);
+    this.anchorVisual.setAttribute('width',0.75);
     this.anchorVisual.setAttribute('height',0.10);
-    this.anchorVisual.setAttribute('depth',1.4);
+    this.anchorVisual.setAttribute('depth',0.75);
     this.anchorVisual.setAttribute('color','#53e5c2');
     this.anchorVisual.setAttribute('material',{shader:'flat',opacity:0.65,transparent:true});
     this.anchorVisual.object3D.visible = false;
     this.el.appendChild(this.anchorVisual);
-    this.anchorLedge = {x:0,z:0,top:0,bottom:0,width:1.4,depth:1.4,color:'#53e5c2',
-      mesh:this.anchorVisual,dynamicWeapon:true,noMantle:true};
+    this.anchorLedge = {x:0,z:0,top:0,bottom:0,width:0.75,depth:0.75,color:'#53e5c2',
+      mesh:this.anchorVisual,dynamicWeapon:true,noMantle:true,supportOnly:true,ownerRigId:this.rig.id};
     this.anchorLive = false;
 
     this.right.addEventListener('thumbstickmoved', event => {
@@ -2400,7 +2414,9 @@ AFRAME.registerComponent('plasma-cutter', {
 
   anchorHeld: function () {
     const climbing = this.el.components['ledge-climb'];
-    return (!!climbing && climbing.hands.some(hand => hand.grabbing && hand.ledge === this.anchorLedge)) || this.anchorStanding();
+    const assist = this.el.components['anchor-assist'];
+    return (!!climbing && climbing.hands.some(hand => hand.grabbing && hand.ledge === this.anchorLedge)) ||
+      !!(assist && assist.latched) || this.anchorStanding();
   },
 
   anchorStanding: function () {
@@ -2449,11 +2465,11 @@ AFRAME.registerComponent('plasma-cutter', {
     const padTop = this.root.position.y, padBottom = padTop - 0.10;
     this.rig.object3D.updateWorldMatrix(true, true);
     this.view.object3D.getWorldPosition(training.head);
-    const overlaps = solid => Math.abs(padX-solid.x) < 0.70+solid.width/2 &&
-      Math.abs(padZ-solid.z) < 0.70+solid.depth/2 &&
+    const overlaps = solid => Math.abs(padX-solid.x) < this.anchorLedge.width/2+solid.width/2 &&
+      Math.abs(padZ-solid.z) < this.anchorLedge.depth/2+solid.depth/2 &&
       padTop > (solid.bottom || 0)+0.01 && padBottom < solid.top-0.01;
-    const blocksPlayer = Math.abs(training.head.x-padX) < 0.88 &&
-      Math.abs(training.head.z-padZ) < 0.88 && padTop > this.rig.object3D.position.y+0.02 &&
+    const blocksPlayer = Math.abs(training.head.x-padX) < this.anchorLedge.width/2 + 0.18 &&
+      Math.abs(training.head.z-padZ) < this.anchorLedge.depth/2 + 0.18 && padTop > this.rig.object3D.position.y+0.02 &&
       padBottom < training.head.y+0.12;
     if (blocksPlayer || (training.practicePlatforms || []).some(overlaps) ||
         (fx.decorativeSolids || []).some(overlaps)) {
@@ -2491,6 +2507,8 @@ AFRAME.registerComponent('plasma-cutter', {
       climbing.releaseAll();
       if (training) { training.velocityY = 0; training.grounded = false; }
     }
+    const assist = this.el.components['anchor-assist'];
+    if (assist && assist.latched) assist.release(false);
     if (training && training.practicePlatforms) {
       const solidIndex = training.practicePlatforms.indexOf(this.anchorLedge);
       if (solidIndex >= 0) training.practicePlatforms.splice(solidIndex, 1);
@@ -3330,6 +3348,7 @@ AFRAME.registerComponent('touch-controls', {
     this.secondaryButton = add('PUNCH','secondary',() => this.secondaryAction());
     this.jumpButton = add('JUMP','jump',() => this.el.components['training-v4'].jump());
     add('ANCHOR','anchor',() => this.el.components['plasma-cutter'].toggleAnchor());
+    this.holdButton = add('HOLD','hold',() => this.el.components['anchor-assist'].toggle());
     this.sprintButton = add('SPRINT','sprint',() => { this.sprint = !this.sprint; });
     const bar = container.querySelector('#touch-hotbar');
     this.knifeSlot = add('KNIFE','knife',() => this.selectItem('knife'),bar);
@@ -3424,6 +3443,8 @@ AFRAME.registerComponent('touch-controls', {
     const training = this.el.components['training-v4'];
     if (!cutter || !fx || !training) return;
     if (training.exhausted) this.sprint = false;
+    if (this.holdButton) this.holdButton.textContent = this.el.components['anchor-assist'] &&
+      this.el.components['anchor-assist'].latched ? 'LET GO' : 'HOLD';
     if (this.jumpButton) this.jumpButton.textContent = 'JUMP ' +
       (training.grounded ? 3 : Math.max(0,3-Math.max(1,training.jumpsUsed || 0)));
     const selected = cutter.active, away = selected && cutter.state !== 'HELD';
@@ -3444,7 +3465,7 @@ AFRAME.registerComponent('touch-controls', {
     if (this.sprintButton.textContent !== sprintText) this.sprintButton.textContent = sprintText;
     this.sprintButton.classList.toggle('active',this.sprint);
     this.sprintButton.setAttribute('aria-pressed',String(this.sprint));
-    const status = 'Starter-v2 B3 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
+    const status = 'Starter-v2 B4 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
       ' | ' + Math.ceil(training.stamina) + '%';
     if (this.status.textContent !== status) this.status.textContent = status;
   }
@@ -3561,7 +3582,7 @@ AFRAME.registerComponent('pause-menu', {
   toggle: function () { this.setOpen(!this.opened); },
 
   help: function () {
-    return 'TRAVERSAL\nNon-VR: ground jump + 2 air jumps; landing restores jumps.\nShared holds support standing and VR grips.\nCutter pad: park clear of body, then O / RB / touch ANCHOR.\nStep/jump off before recalling the pad.\n\nXBOX / STANDARD GAMEPAD\nLeft stick: move | Right stick: look\nL-stick click: sprint toggle | A: jump\nRT: throw / hold tether; release: hover\nLT: punch / cutter swing | B: retrieve cutter\nX: equip/stow cutter | Y: blade power\nLB: park remote cutter | RB: anchor toggle\nD-pad up/down: depth | left/right: roll\nMenu: pause | View: aim/grip hints\nPaused: D-pad select, A confirm, B resume\nTracked-hand climbing/handoff: Quest only\n\nQUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nCutter handoff uses both close grips; tether follows the owning hand.';
+    return 'TRAVERSAL\nNon-VR: ground jump + 2 air jumps; landing restores jumps.\nShared holds support standing and VR grips.\nCutter pad: park clear of body, then O / RB / touch ANCHOR.\nStep/jump off before recalling the pad.\nF / Xbox R-stick click / phone HOLD: catch or release own anchor.\nWhile holding: move slowly to adjust; jump launches with 2 air jumps.\nAnchor support does not block projectiles.\n\nXBOX / STANDARD GAMEPAD\nLeft stick: move | Right stick: look\nL-stick click: sprint toggle | A: jump\nRT: throw / hold tether; release: hover\nLT: punch / cutter swing | B: retrieve cutter\nX: equip/stow cutter | Y: blade power\nLB: park remote cutter | RB: anchor toggle\nD-pad up/down: depth | left/right: roll\nMenu: pause | View: aim/grip hints\nPaused: D-pad select, A confirm, B resume\nTracked-hand climbing/handoff: Quest only\n\nQUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nCutter handoff uses both close grips; tether follows the owning hand.';
   },
 
   setOpen: function (value) {
@@ -3890,13 +3911,14 @@ AFRAME.registerComponent('standard-gamepad', {
   this.depthAxis=Number(down(12))-Number(down(13));this.rollAxis=Number(down(15))-Number(down(14));
   const look=t.view.components['look-controls'],dt=delta/1000;
   if(look&&look.yawObject&&look.pitchObject){look.yawObject.rotation.y-=lx*105*Math.PI/180*dt;look.pitchObject.rotation.x=THREE.MathUtils.clamp(look.pitchObject.rotation.x-ly*75*Math.PI/180*dt,-85*Math.PI/180,85*Math.PI/180);}
+  if(edge(11) && c['anchor-assist'])c['anchor-assist'].toggle();
   if(edge(0))t.jump();if(edge(2))w.toggleEquip();if(edge(3))w.toggleBlade();
   if(edge(1)&&w.active)w.recall('XBOX RETRIEVE');if(edge(5))w.toggleAnchor();if(edge(8))fx.toggleHints();
   if(edge(6))fx.unlockAudio();if(down(6)&&time>=this.nextMelee){t.desktopPunch();this.nextMelee=time+350;}
   if(edge(7)){fx.unlockAudio();this.rtOwned=true;fx.requestPrimary();}
   if(!down(7)&&this.previous[7]){if(this.rtOwned)w.endPress();this.rtOwned=false;}
   if(edge(4)&&w.active&&w.state!=='HELD'&&w.state!=='RETURNING'){w.clearTrigger();w.hover(false);fx.throwRequested=false;this.rtOwned=false;}
-  this.previous=b.slice();this.status.textContent='Starter-v2 B3 | Xbox | '+(w.active?'CUTTER '+w.state:'KNIFE')+(this.sprint?' | SPRINT':'')+' | Menu: controls';
+  this.previous=b.slice();this.status.textContent='Starter-v2 B4 | Xbox | '+(w.active?'CUTTER '+w.state:'KNIFE')+(this.sprint?' | SPRINT':'')+' | Menu: controls';
  },
  remove:function(){
   this.reset(true);window.removeEventListener('blur',this.resetListener);document.removeEventListener('visibilitychange',this.resetListener);
@@ -3918,17 +3940,106 @@ AFRAME.registerComponent('jump-readout', {
     const t = this.el.components['training-v4'];
     const p = this.el.components['pause-menu'];
     this.label.hidden = !t || this.el.is('vr-mode') || !!(p && p.opened);
-    if (t && !this.label.hidden) this.label.textContent = 'JUMPS ' +
+    const assist = this.el.components['anchor-assist'];
+    if (t && !this.label.hidden) this.label.textContent = assist && assist.latched ? 'HOLDING | Move: adjust | Jump: launch | HOLD: let go' : 'JUMPS ' +
       (t.grounded ? 3 : Math.max(0,3-Math.max(1,t.jumpsUsed || 0))) + '/3';
   },
   remove: function () { this.label.remove(); }
+});
+</script>
+<script>
+AFRAME.registerComponent('anchor-assist', {
+  init: function () {
+    this.latched = false;
+    this.head = new THREE.Vector3();
+    this.q = new THREE.Quaternion();
+    this.forward = new THREE.Vector3();
+    this.side = new THREE.Vector3();
+    this.onKey = event => {
+      if (event.code !== 'KeyF' || event.repeat || this.el.is('vr-mode')) return;
+      if (event.target.closest && event.target.closest('input,textarea,[contenteditable],button')) return;
+      event.preventDefault(); this.toggle();
+    };
+    this.onXR = () => this.release(false);
+    window.addEventListener('keydown', this.onKey);
+    this.el.addEventListener('enter-vr', this.onXR);
+    this.el.addEventListener('exit-vr', this.onXR);
+  },
+  toggle: function () {
+    const t = this.el.components['training-v4'], c = this.el.components['plasma-cutter'];
+    const menu = this.el.components['pause-menu'];
+    if (!t || !c || this.el.is('vr-mode') || document.hidden || (menu && menu.opened)) return;
+    if (this.latched) { this.release(false); c.message('ANCHOR RELEASED - F / R-stick click / HOLD to re-grab'); return; }
+    if (!c.anchorLive) { c.message('Place your anchor first, then HOLD when within reach'); return; }
+    t.rig.object3D.updateWorldMatrix(true,true);
+    t.view.object3D.getWorldPosition(this.head);
+    const pad = c.anchorLedge, feet = t.rig.object3D.position.y;
+    const horizontal = Math.hypot(this.head.x-pad.x, this.head.z-pad.z);
+    // Catch the edge near the upper body, or grip while already standing on it.
+    const withinReach = horizontal <= 0.95 && pad.top >= this.head.y-0.9 && pad.top <= this.head.y+0.45;
+    if (!c.anchorStanding() && !withinReach) { c.message('OUT OF REACH - move closer to your anchor'); return; }
+    this.latched = true;
+    this.holdX = this.head.x; this.holdZ = this.head.z; this.holdY = feet;
+    this.radius = Math.min(0.95, Math.max(0.38,horizontal));
+    t.velocityY = 0; t.grounded = false; t.jumpsUsed = 0;
+    c.clearTrigger();
+    const fx = this.el.components['ability-test']; if (fx) fx.throwRequested = false;
+    c.message('HOLDING - move to adjust, look freely; jump to launch; HOLD again deliberately lets go');
+  },
+  release: function (jumping) {
+    if (!this.latched) return;
+    this.latched = false;
+    const t = this.el.components['training-v4'];
+    if (t) { t.velocityY = 0; t.grounded = false; t.jumpsUsed = jumping ? 0 : 1; }
+  },
+  clearBody: function (x,y,z,t,height) {
+    const fx = this.el.components['ability-test'];
+    const solids = (t.practicePlatforms || []).concat(fx ? fx.decorativeSolids || [] : []);
+    return !solids.some(p => !p.supportOnly && Math.abs(x-p.x) < p.width/2+0.18 &&
+      Math.abs(z-p.z) < p.depth/2+0.18 && y < p.top-0.02 && y+height > (p.bottom || 0)+0.02);
+  },
+  step: function (t,dt) {
+    if (!this.latched) return false;
+    const c = this.el.components['plasma-cutter'];
+    if (!c || !c.anchorLive || this.el.is('vr-mode')) { this.release(false); return false; }
+    // Blur pauses adjustments but keeps support, rather than causing a surprise fall.
+    if (!document.hasFocus()) { t.velocityY=0; return true; }
+    t.rig.object3D.updateWorldMatrix(true,true); t.view.object3D.getWorldPosition(this.head);
+    const height = this.head.y - t.rig.object3D.position.y;
+    const touch = this.el.components['touch-controls'], padInput = this.el.components['standard-gamepad'];
+    let x = touch && touch.moving ? touch.moveX : padInput && padInput.moving ? padInput.moveX :
+      Number(t.keys.has('KeyD'))-Number(t.keys.has('KeyA'));
+    let y = touch && touch.moving ? touch.moveY : padInput && padInput.moving ? padInput.moveY :
+      Number(t.keys.has('KeyS'))-Number(t.keys.has('KeyW'));
+    const length = Math.hypot(x,y); if (length>1) { x/=length; y/=length; }
+    t.view.object3D.getWorldQuaternion(this.q);
+    this.forward.set(0,0,-1).applyQuaternion(this.q); this.forward.y=0;
+    if (this.forward.lengthSq()>0.001) this.forward.normalize(); else this.forward.set(0,0,-1);
+    this.side.set(-this.forward.z,0,this.forward.x);
+    let nx = this.holdX+(this.side.x*x-this.forward.x*y)*0.65*dt;
+    let nz = this.holdZ+(this.side.z*x-this.forward.z*y)*0.65*dt;
+    const anchor = c.anchorLedge, dx=nx-anchor.x, dz=nz-anchor.z, distance=Math.hypot(dx,dz);
+    if (distance>this.radius) { nx=anchor.x+dx/distance*this.radius; nz=anchor.z+dz/distance*this.radius; }
+    if (this.clearBody(nx,this.holdY,nz,t,height)) { this.holdX=nx; this.holdZ=nz; }
+    t.rig.object3D.position.x += this.holdX-this.head.x;
+    t.rig.object3D.position.z += this.holdZ-this.head.z;
+    t.rig.object3D.position.y = this.holdY;
+    t.velocityY=0; t.grounded=false; t.jumpsUsed=0;
+    return true;
+  },
+  remove: function () {
+    this.release(false);
+    window.removeEventListener('keydown',this.onKey);
+    this.el.removeEventListener('enter-vr',this.onXR);
+    this.el.removeEventListener('exit-vr',this.onXR);
+  }
 });
 </script>
 </head>
 
 <body>
 
-<div id="hud">Loading Starter-v2 B3...</div>
+<div id="hud">Loading Starter-v2 B4...</div>
 <div id="crosshair">+</div>
 
 <a-scene
@@ -3940,6 +4051,7 @@ AFRAME.registerComponent('jump-readout', {
   pause-menu
   input-layout
   standard-gamepad
+  anchor-assist
   jump-readout
   ascent-run
   background="color: #182333">
@@ -4049,7 +4161,7 @@ AFRAME.registerComponent('jump-readout', {
     align="center"
     width="4"
     color="white"
-    value="STARTER-v2\nBASELINE 3 - AERIAL">
+    value="STARTER-v2\nBASELINE 4 - ANCHOR">
   </a-text>
 
   <!-- Practice target -->
