@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VR Starter-v2 - Baseline 2 - Xbox Controls</title>
+<title>VR Starter-v2 - Baseline 3 - Triple Jump and Shared Holds</title>
 <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
 <style>
@@ -107,6 +107,8 @@ body.game-paused #mobile-controls { display:none !important; }
 body.immersive #gamepad-status { display:none; }
 body.using-gamepad #mobile-controls { display:none !important; }
 #pause-overlay button:focus-visible, #pause-overlay button:focus { outline:3px solid #ffe18a; outline-offset:2px; }
+
+#touch-actions button[data-action="anchor"] { left:16px; bottom:calc(var(--stick-size) + 86px + env(safe-area-inset-bottom,0px)); width:82px; height:38px; border-radius:20px; font-size:10px; }
 </style>
 
 <script>
@@ -139,6 +141,7 @@ AFRAME.registerComponent('training-v4', {
     this.exhausted = false;
     this.velocityY = 0;
     this.grounded = true;
+    this.jumpsUsed = 0;
 
     this.hp = 100;
     this.resetAt = 0;
@@ -338,10 +341,12 @@ AFRAME.registerComponent('training-v4', {
     this.rig.object3D.position.y = 0;
     this.velocityY = 0;
     this.grounded = true;
+    this.jumpsUsed = 0;
   },
 
     jump: function () {
-    if (document.hidden) return;
+    const pause = this.el.components['pause-menu'];
+    if (document.hidden || (pause && pause.opened)) return;
 
     const climbing = this.el.components['ledge-climb'];
 
@@ -355,11 +360,25 @@ AFRAME.registerComponent('training-v4', {
       return;
     }
 
-    // Otherwise, keep the ordinary ground jump.
-    if (this.grounded) {
-      this.velocityY = 4.2;
-      this.grounded = false;
+    // Quest keeps its ground jump / physical ledge launch. Non-VR gets two air boosts.
+    if (this.inVR()) {
+      if (!this.grounded) return;
+    } else {
+      if (this.grounded) this.jumpsUsed = 0;
+      else this.jumpsUsed = Math.max(1, this.jumpsUsed || 0);
+      if (this.jumpsUsed >= 3) return;
     }
+    if (this.grounded) {
+      const touch = this.el.components['touch-controls'];
+      const pad = this.el.components['standard-gamepad'];
+      const sprintHeld = this.inVR() ? this.grip : this.keys.has('ShiftLeft') ||
+        this.keys.has('ShiftRight') || (touch && touch.sprint) || (pad && pad.sprint);
+      this.takeoffSpeed = this.walkSpeeds[this.walkIndex] *
+        (sprintHeld && !this.exhausted && this.stamina > 0 ? 1.8 : 1);
+    }
+    this.velocityY = 4.2;
+    this.grounded = false;
+    if (!this.inVR()) this.jumpsUsed++;
   },
   
   placeTarget: function () {
@@ -775,8 +794,24 @@ AFRAME.registerComponent('training-v4', {
       this.rig.object3D.position.y = landingHeight;
       this.velocityY = 0;
       this.grounded = true;
+      this.jumpsUsed = 0;
     } else if (this.rig.object3D.position.y <= 0) {
       this.landReset();
+    }
+
+    // A suspended anchor is a thin slab, including its visible underside.
+    if (this.velocityY > 0) {
+      this.practicePlatforms.filter(platform => platform.dynamicWeapon).forEach(platform => {
+        const feet = this.rig.object3D.position.y;
+        const under = Math.abs(this.head.x-platform.x) < platform.width/2 + playerRadius &&
+          Math.abs(this.head.z-platform.z) < platform.depth/2 + playerRadius;
+        if (under && previousFeetY + playerHeight <= platform.bottom + 0.01 &&
+            feet + playerHeight >= platform.bottom) {
+          this.rig.object3D.position.y = platform.bottom - playerHeight - 0.01;
+          this.velocityY = 0;
+          this.grounded = false;
+        }
+      });
     }
 
     // Resolve simple collisions against platform sides.
@@ -786,7 +821,7 @@ AFRAME.registerComponent('training-v4', {
 
       if (
         feetY >= platform.top - 0.01 ||
-        bodyTop <= 0
+        bodyTop <= (platform.bottom || 0)
       ) {
         return;
       }
@@ -957,7 +992,7 @@ AFRAME.registerComponent('training-v4', {
           : 'READY';
 
     const status =
-      'STARTER-v2 B2 | ' +
+      'STARTER-v2 B3 | ' +
       (vr ? 'VR' : 'DESKTOP') + '\n' +
       'Stamina ' +
       Math.ceil(this.stamina) +
@@ -1181,6 +1216,8 @@ AFRAME.registerComponent('ledge-climb', {
     if (!this.routeBuilt) {
       this.routeBuilt = true;
       this.ledges.forEach((ledge, index) => {
+        ledge.width = Math.max(2, ledge.width);
+        ledge.depth = Math.max(1.6, ledge.depth);
         training.practicePlatforms.push(ledge);
         const mesh = document.createElement('a-box');
         mesh.setAttribute('position', {x: ledge.x, y: ledge.top / 2, z: ledge.z});
@@ -2116,7 +2153,7 @@ AFRAME.registerComponent('ability-test', {
     const state = holding ? 'HOLD | Stamina ' + Math.ceil(training.stamina) + '/100 (grip costs 0)' : '';
     const knifeState = this.state === 'READY' && this.cooldown > 0 ? 'RECOVERING' : this.state;
     const cutter = this.el.components['plasma-cutter'];
-    let text = 'STARTER-v2 B2 | ' + (cutter && cutter.active ?
+    let text = 'STARTER-v2 B3 | ' + (cutter && cutter.active ?
       'CUTTER ' + (cutter.owningHand || 'right').toUpperCase() + ' ' + cutter.state + (cutter.ignited ? ' ON' : ' OFF') +
       (cutter.guiding ? ' | TETHER -2/s' : '') +
       (cutter.state !== 'HELD' ? ' | ' + cutter.root.position.distanceTo(cutter.origin).toFixed(1) + 'm' : '') : 'KNIFE ' + knifeState);
@@ -2256,14 +2293,14 @@ AFRAME.registerComponent('plasma-cutter', {
     this.root.visible = false;
     this.el.object3D.add(this.root);
     this.anchorVisual = document.createElement('a-box');
-    this.anchorVisual.setAttribute('width',0.30);
-    this.anchorVisual.setAttribute('height',0.06);
-    this.anchorVisual.setAttribute('depth',0.30);
+    this.anchorVisual.setAttribute('width',1.4);
+    this.anchorVisual.setAttribute('height',0.10);
+    this.anchorVisual.setAttribute('depth',1.4);
     this.anchorVisual.setAttribute('color','#53e5c2');
     this.anchorVisual.setAttribute('material',{shader:'flat',opacity:0.65,transparent:true});
     this.anchorVisual.object3D.visible = false;
     this.el.appendChild(this.anchorVisual);
-    this.anchorLedge = {x:0,z:0,top:0,width:0.30,depth:0.30,color:'#53e5c2',
+    this.anchorLedge = {x:0,z:0,top:0,bottom:0,width:1.4,depth:1.4,color:'#53e5c2',
       mesh:this.anchorVisual,dynamicWeapon:true,noMantle:true};
     this.anchorLive = false;
 
@@ -2363,7 +2400,18 @@ AFRAME.registerComponent('plasma-cutter', {
 
   anchorHeld: function () {
     const climbing = this.el.components['ledge-climb'];
-    return !!climbing && climbing.hands.some(hand => hand.grabbing && hand.ledge === this.anchorLedge);
+    return (!!climbing && climbing.hands.some(hand => hand.grabbing && hand.ledge === this.anchorLedge)) || this.anchorStanding();
+  },
+
+  anchorStanding: function () {
+    const training = this.el.components['training-v4'];
+    if (!this.anchorLive || !training || !training.grounded) return false;
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(training.head);
+    const pad = this.anchorLedge;
+    return Math.abs(this.rig.object3D.position.y - pad.top) < 0.035 &&
+      Math.abs(training.head.x - pad.x) < pad.width / 2 + 0.09 &&
+      Math.abs(training.head.z - pad.z) < pad.depth / 2 + 0.09;
   },
 
   toggleAnchor: function () {
@@ -2397,6 +2445,21 @@ AFRAME.registerComponent('plasma-cutter', {
     if (this.root.position.y < 0.20 || Number.isFinite(fx.blockingDistance(this.root.position,this.up,0.08,training))) {
       this.message('Move cutter clear of floor, wall or platform before anchoring'); return false;
     }
+    const padX = this.root.position.x, padZ = this.root.position.z;
+    const padTop = this.root.position.y, padBottom = padTop - 0.10;
+    this.rig.object3D.updateWorldMatrix(true, true);
+    this.view.object3D.getWorldPosition(training.head);
+    const overlaps = solid => Math.abs(padX-solid.x) < 0.70+solid.width/2 &&
+      Math.abs(padZ-solid.z) < 0.70+solid.depth/2 &&
+      padTop > (solid.bottom || 0)+0.01 && padBottom < solid.top-0.01;
+    const blocksPlayer = Math.abs(training.head.x-padX) < 0.88 &&
+      Math.abs(training.head.z-padZ) < 0.88 && padTop > this.rig.object3D.position.y+0.02 &&
+      padBottom < training.head.y+0.12;
+    if (blocksPlayer || (training.practicePlatforms || []).some(overlaps) ||
+        (fx.decorativeSolids || []).some(overlaps)) {
+      this.message('ANCHOR NEEDS SPACE - park cutter clear of your body and scenery');
+      return false;
+    }
     this.clearTrigger();
     fx.throwRequested = false;
     this.state = 'ANCHORED';
@@ -2407,14 +2470,16 @@ AFRAME.registerComponent('plasma-cutter', {
     this.anchorLedge.x = this.root.position.x;
     this.anchorLedge.z = this.root.position.z;
     this.anchorLedge.top = this.root.position.y;
-    this.anchorVisual.setAttribute('position',{x:this.anchorLedge.x,y:this.anchorLedge.top-0.03,z:this.anchorLedge.z});
+    this.anchorLedge.bottom = this.anchorLedge.top - 0.10;
+    this.anchorVisual.setAttribute('position',{x:this.anchorLedge.x,y:this.anchorLedge.top-0.05,z:this.anchorLedge.z});
     this.anchorVisual.setAttribute('color',this.anchorLedge.color);
     this.anchorVisual.object3D.visible = true;
     this.root.visible = true;
     if (!climbing.ledges.includes(this.anchorLedge)) climbing.ledges.push(this.anchorLedge);
+    if (!training.practicePlatforms.includes(this.anchorLedge)) training.practicePlatforms.push(this.anchorLedge);
     this.anchorLive = true;
     fx.playEffect('catch');
-    this.message('CUTTER ANCHORED - grip mint pad, pull to climb; A launches; B releases when clear');
+    this.message('CUTTER PAD - land on mint top, or VR grip edges; release/recall only when clear');
     return true;
   },
 
@@ -2422,9 +2487,13 @@ AFRAME.registerComponent('plasma-cutter', {
     if (!this.anchorLive) return true;
     const climbing = this.el.components['ledge-climb'], training = this.el.components['training-v4'];
     if (this.anchorHeld()) {
-      if (!force) { this.clearTrigger(); this.message('Release the cutter climbing hold before moving or retrieving it'); return false; }
+      if (!force) { this.clearTrigger(); this.message('Step or jump off the pad / release grips before moving or retrieving it'); return false; }
       climbing.releaseAll();
       if (training) { training.velocityY = 0; training.grounded = false; }
+    }
+    if (training && training.practicePlatforms) {
+      const solidIndex = training.practicePlatforms.indexOf(this.anchorLedge);
+      if (solidIndex >= 0) training.practicePlatforms.splice(solidIndex, 1);
     }
     if (climbing) {
       const index = climbing.ledges.indexOf(this.anchorLedge);
@@ -2618,6 +2687,7 @@ AFRAME.registerComponent('plasma-cutter', {
   },
 
   hover: function (audible) {
+    if (this.anchorLive && !this.removeAnchor(false)) return;
     if (this.state === 'HELD') return;
     this.state = 'HOVER';
     this.guiding = false;
@@ -3258,7 +3328,8 @@ AFRAME.registerComponent('touch-controls', {
       this.aimX = event.clientX; this.aimY = event.clientY;
     });
     this.secondaryButton = add('PUNCH','secondary',() => this.secondaryAction());
-    add('JUMP','jump',() => this.el.components['training-v4'].jump());
+    this.jumpButton = add('JUMP','jump',() => this.el.components['training-v4'].jump());
+    add('ANCHOR','anchor',() => this.el.components['plasma-cutter'].toggleAnchor());
     this.sprintButton = add('SPRINT','sprint',() => { this.sprint = !this.sprint; });
     const bar = container.querySelector('#touch-hotbar');
     this.knifeSlot = add('KNIFE','knife',() => this.selectItem('knife'),bar);
@@ -3353,6 +3424,8 @@ AFRAME.registerComponent('touch-controls', {
     const training = this.el.components['training-v4'];
     if (!cutter || !fx || !training) return;
     if (training.exhausted) this.sprint = false;
+    if (this.jumpButton) this.jumpButton.textContent = 'JUMP ' +
+      (training.grounded ? 3 : Math.max(0,3-Math.max(1,training.jumpsUsed || 0)));
     const selected = cutter.active, away = selected && cutter.state !== 'HELD';
     const returning = selected && cutter.state === 'RETURNING';
     const warming = selected && cutter.ignited && cutter.bladeAmount < 0.9;
@@ -3371,7 +3444,7 @@ AFRAME.registerComponent('touch-controls', {
     if (this.sprintButton.textContent !== sprintText) this.sprintButton.textContent = sprintText;
     this.sprintButton.classList.toggle('active',this.sprint);
     this.sprintButton.setAttribute('aria-pressed',String(this.sprint));
-    const status = 'Starter-v2 B2 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
+    const status = 'Starter-v2 B3 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
       ' | ' + Math.ceil(training.stamina) + '%';
     if (this.status.textContent !== status) this.status.textContent = status;
   }
@@ -3488,7 +3561,7 @@ AFRAME.registerComponent('pause-menu', {
   toggle: function () { this.setOpen(!this.opened); },
 
   help: function () {
-    return 'XBOX / STANDARD GAMEPAD\nLeft stick: move | Right stick: look\nL-stick click: sprint toggle | A: jump\nRT: throw / hold tether; release: hover\nLT: punch / cutter swing | B: retrieve cutter\nX: equip/stow cutter | Y: blade power\nLB: park remote cutter | RB: anchor toggle\nD-pad up/down: depth | left/right: roll\nMenu: pause | View: aim/grip hints\nPaused: D-pad select, A confirm, B resume\nTracked-hand climbing/handoff: Quest only\n\nQUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nCutter handoff uses both close grips; tether follows the owning hand.';
+    return 'TRAVERSAL\nNon-VR: ground jump + 2 air jumps; landing restores jumps.\nShared holds support standing and VR grips.\nCutter pad: park clear of body, then O / RB / touch ANCHOR.\nStep/jump off before recalling the pad.\n\nXBOX / STANDARD GAMEPAD\nLeft stick: move | Right stick: look\nL-stick click: sprint toggle | A: jump\nRT: throw / hold tether; release: hover\nLT: punch / cutter swing | B: retrieve cutter\nX: equip/stow cutter | Y: blade power\nLB: park remote cutter | RB: anchor toggle\nD-pad up/down: depth | left/right: roll\nMenu: pause | View: aim/grip hints\nPaused: D-pad select, A confirm, B resume\nTracked-hand climbing/handoff: Quest only\n\nQUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nCutter handoff uses both close grips; tether follows the owning hand.';
   },
 
   setOpen: function (value) {
@@ -3823,7 +3896,7 @@ AFRAME.registerComponent('standard-gamepad', {
   if(edge(7)){fx.unlockAudio();this.rtOwned=true;fx.requestPrimary();}
   if(!down(7)&&this.previous[7]){if(this.rtOwned)w.endPress();this.rtOwned=false;}
   if(edge(4)&&w.active&&w.state!=='HELD'&&w.state!=='RETURNING'){w.clearTrigger();w.hover(false);fx.throwRequested=false;this.rtOwned=false;}
-  this.previous=b.slice();this.status.textContent='Starter-v2 B2 | Xbox | '+(w.active?'CUTTER '+w.state:'KNIFE')+(this.sprint?' | SPRINT':'')+' | Menu: controls';
+  this.previous=b.slice();this.status.textContent='Starter-v2 B3 | Xbox | '+(w.active?'CUTTER '+w.state:'KNIFE')+(this.sprint?' | SPRINT':'')+' | Menu: controls';
  },
  remove:function(){
   this.reset(true);window.removeEventListener('blur',this.resetListener);document.removeEventListener('visibilitychange',this.resetListener);
@@ -3833,11 +3906,29 @@ AFRAME.registerComponent('standard-gamepad', {
 });
 
 </script>
+<script>
+AFRAME.registerComponent('jump-readout', {
+  init: function () {
+    this.label = document.createElement('div');
+    this.label.id = 'jump-readout';
+    this.label.style.cssText = 'position:fixed;left:12px;top:42px;z-index:24;color:#c4fff0;background:#102434bb;padding:5px 8px;border-radius:6px;font:12px Arial,sans-serif;pointer-events:none';
+    document.body.appendChild(this.label);
+  },
+  tick: function () {
+    const t = this.el.components['training-v4'];
+    const p = this.el.components['pause-menu'];
+    this.label.hidden = !t || this.el.is('vr-mode') || !!(p && p.opened);
+    if (t && !this.label.hidden) this.label.textContent = 'JUMPS ' +
+      (t.grounded ? 3 : Math.max(0,3-Math.max(1,t.jumpsUsed || 0))) + '/3';
+  },
+  remove: function () { this.label.remove(); }
+});
+</script>
 </head>
 
 <body>
 
-<div id="hud">Loading Starter-v2 B2...</div>
+<div id="hud">Loading Starter-v2 B3...</div>
 <div id="crosshair">+</div>
 
 <a-scene
@@ -3849,6 +3940,7 @@ AFRAME.registerComponent('standard-gamepad', {
   pause-menu
   input-layout
   standard-gamepad
+  jump-readout
   ascent-run
   background="color: #182333">
 
@@ -3957,7 +4049,7 @@ AFRAME.registerComponent('standard-gamepad', {
     align="center"
     width="4"
     color="white"
-    value="STARTER-v2\nBASELINE 2 - XBOX">
+    value="STARTER-v2\nBASELINE 3 - AERIAL">
   </a-text>
 
   <!-- Practice target -->
