@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Descent VR - XR Aim Test v5.1</title>
+<title>Descent VR - Wrist Lab v6.2.10</title>
 <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
 <style>
@@ -42,6 +42,66 @@ body.immersive #hud,
 body.immersive #crosshair {
   display: none;
 }
+
+#audio-panel {
+  position: fixed; bottom: 12px; left: 12px; z-index: 20;
+  background: #101a29ef; color: white; border-radius: 8px;
+  padding: 10px; font: 14px Arial, sans-serif;
+}
+#audio-panel button { margin-left: 5px; padding: 7px; cursor: pointer; }
+body.immersive #audio-panel { display: none; }
+
+
+#mobile-controls { display:none; position:fixed; inset:0; z-index:15; pointer-events:none; user-select:none; -webkit-user-select:none; --stick-size:clamp(88px,27vw,120px); }
+body.input-touch:not(.immersive) #mobile-controls { display:block; }
+#mobile-controls button, #touch-move, #touch-look { pointer-events:auto; touch-action:none; -webkit-tap-highlight-color:transparent; }
+#touch-look { position:absolute; inset:0 0 0 39%; z-index:0; }
+#touch-move { position:absolute; left:12px; bottom:calc(24px + env(safe-area-inset-bottom,0px)); width:var(--stick-size); height:var(--stick-size); z-index:2; border:2px solid #a9d9ef88; border-radius:50%; background:#172c407a; display:grid; place-items:center; color:#c4dce988; font:10px Arial,sans-serif; box-sizing:border-box; }
+#touch-move i { position:absolute; width:38%; height:38%; border:1px solid #d5f4ffbb; border-radius:50%; background:#76b8d588; box-sizing:border-box; }
+#touch-actions { position:absolute; inset:0; pointer-events:none; z-index:2; }
+#touch-actions button { position:absolute; padding:4px; color:#f4fbff; background:#193b52db; border:2px solid #bddcea99; border-radius:50%; font:bold 11px Arial,sans-serif; box-shadow:0 2px 8px #0005; }
+#touch-actions button[data-action="primary"] { right:16px; bottom:calc(108px + env(safe-area-inset-bottom,0px)); width:76px; height:76px; background:#216b87e6; border-color:#94e7ff; }
+#touch-actions button[data-action="secondary"] { right:25px; bottom:calc(200px + env(safe-area-inset-bottom,0px)); width:58px; height:58px; font-size:9px; }
+#touch-actions button[data-action="jump"] { right:20px; bottom:calc(24px + env(safe-area-inset-bottom,0px)); width:64px; height:64px; }
+#touch-actions button[data-action="sprint"] { left:16px; bottom:calc(var(--stick-size) + 40px + env(safe-area-inset-bottom,0px)); width:82px; height:38px; border-radius:20px; font-size:10px; }
+#touch-actions button.active { background:#337b48e8; border-color:#b5f1bf; }
+#touch-actions button.aiming { background:#388dadf2; box-shadow:0 0 0 5px #9beaff33; }
+#touch-actions button:disabled { opacity:0.5; }
+#touch-hotbar { position:absolute; bottom:calc(20px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); z-index:3; display:flex; gap:6px; padding:5px; border:1px solid #a3c3d666; border-radius:10px; background:#102434bf; }
+#touch-hotbar button { width:clamp(46px,13vw,64px); min-height:44px; border:2px solid #7894a8; border-radius:6px; background:#263f53; color:#e5f2fa; font:bold 9px Arial,sans-serif; padding:3px; }
+#touch-hotbar button[aria-pressed="true"] { border-color:#a6efff; background:#2c7188; box-shadow:inset 0 0 0 1px #b7f3ff; }
+#touch-hotbar button:disabled { opacity:0.6; }
+#touch-status { position:absolute; top:12px; left:12px; right:94px; z-index:1; color:#effaff; text-shadow:0 1px 3px #000; font:11px Arial,sans-serif; pointer-events:none; }
+body.input-touch #hud { display:none; }
+body.input-touch .a-enter-vr { top:58px; bottom:auto; right:calc(50% + 5px); }
+body.input-touch .a-enter-ar { top:58px; bottom:auto; right:calc(50% - 55px); }
+@media (max-height:450px) {
+  #mobile-controls { --stick-size:100px; }
+  #touch-move { bottom:16px; }
+  #touch-actions button[data-action="primary"] { bottom:94px; width:70px; height:70px; }
+  #touch-actions button[data-action="secondary"] { right:102px; bottom:104px; width:52px; height:52px; }
+  #touch-actions button[data-action="jump"] { bottom:16px; width:60px; height:60px; }
+  #touch-actions button[data-action="sprint"] { bottom:132px; }
+  #touch-hotbar { bottom:16px; }
+}
+
+#audio-panel { display:none !important; }
+#pause-launcher { position:fixed; top:10px; right:10px; z-index:25; padding:10px 18px; color:white; background:#22455e; border:1px solid #70c6e8; border-radius:8px; }
+body.immersive #pause-launcher { display:none; }
+#pause-overlay { display:none; position:fixed; inset:0; z-index:50; background:#06111cce; place-items:center; color:#edf8ff; font:14px Arial,sans-serif; }
+#pause-overlay section { width:min(90vw,600px); max-height:90vh; overflow:auto; background:#152d42; border:1px solid #6597b4; border-radius:12px; padding:16px; box-sizing:border-box; }
+#pause-overlay h2 { margin:0 0 12px; }
+#pause-info { white-space:pre-line; }
+#pause-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+#pause-actions button { min-height:42px; background:#294c69; color:white; border:1px solid #6c9fbd; border-radius:7px; touch-action:manipulation; }
+#pause-help { white-space:pre-wrap; font:12px/1.5 Arial,sans-serif; }
+body.game-paused #mobile-controls { display:none !important; }
+
+
+#input-layout-settings { margin:14px 0 0; border:1px solid #6597b4; border-radius:7px; padding:10px; }
+#input-layout-settings button { margin:4px 6px 4px 0; min-height:38px; padding:6px 12px; border:1px solid #6c9fbd; border-radius:6px; background:#294c69; color:white; touch-action:manipulation; }
+#input-layout-settings button[aria-pressed="true"] { background:#367449; border-color:#a4ebaa; }
+#input-layout-settings p { margin:6px 0 0; font-size:12px; line-height:1.4; }
 </style>
 
 <script>
@@ -63,10 +123,11 @@ AFRAME.registerComponent('training-v4', {
 
     this.mode = 'smooth';
     this.snapReady = true;
-    this.turnIndex = 1;
+    // Single fixed values preserve the existing movement and ledge interface.
+    this.turnIndex = 0;
     this.walkIndex = 0;
-    this.turnSpeeds = [30, 60, 90];
-    this.walkSpeeds = [1, 1.5, 2];
+    this.turnSpeeds = [105];
+    this.walkSpeeds = [2.3];
 
     this.grip = false;
     this.stamina = 100;
@@ -119,14 +180,6 @@ AFRAME.registerComponent('training-v4', {
       this.snapReady = false;
     });
 
-    this.left.addEventListener('ybuttondown', () => {
-      this.turnIndex = (this.turnIndex + 1) % 3;
-    });
-
-    this.right.addEventListener('bbuttondown', () => {
-      this.walkIndex = (this.walkIndex + 1) % 3;
-    });
-
     this.right.addEventListener('abuttondown', () => {
       if (this.inVR()) this.jump();
     });
@@ -138,10 +191,6 @@ AFRAME.registerComponent('training-v4', {
     });
 
     this.hands.forEach(hand => {
-      hand.el.addEventListener('triggerdown', () => {
-        if (this.inVR() && hand.el === this.left) this.placeTarget();
-      });
-
       hand.el.addEventListener('controllerconnected', () => {
         hand.connected = true;
         hand.ready = false;
@@ -162,7 +211,11 @@ AFRAME.registerComponent('training-v4', {
       'Space',
       'ShiftLeft',
       'ShiftRight',
-      'KeyR'
+      'KeyP',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown'
     ];
 
     window.addEventListener('keydown', event => {
@@ -171,7 +224,8 @@ AFRAME.registerComponent('training-v4', {
 
       if (
         event.target.closest &&
-        event.target.closest('input,textarea,[contenteditable]')
+        (event.target.closest('input,textarea,[contenteditable]') ||
+          (event.code.startsWith('Arrow') && event.target.closest('button,select,a[href]')))
       ) {
         return;
       }
@@ -182,7 +236,7 @@ AFRAME.registerComponent('training-v4', {
       if (event.repeat) return;
 
       if (event.code === 'Space') this.jump();
-      if (event.code === 'KeyR') this.placeTarget();
+
     });
 
     window.addEventListener('keyup', event => {
@@ -246,6 +300,20 @@ AFRAME.registerComponent('training-v4', {
 
   inVR: function () {
     return this.el.is('vr-mode');
+  },
+
+  stepKeyboardLook: function (dt) {
+    const pause = this.el.components['pause-menu'];
+    if (this.inVR() || document.hidden || (pause && pause.opened) ||
+        !Number.isFinite(dt) || dt <= 0 || dt > 0.1) return;
+    const look = this.view.components['look-controls'];
+    if (!look || !look.yawObject || !look.pitchObject) return;
+    const yaw = Number(this.keys.has('ArrowLeft')) - Number(this.keys.has('ArrowRight'));
+    const pitch = Number(this.keys.has('ArrowUp')) - Number(this.keys.has('ArrowDown'));
+    look.yawObject.rotation.y += yaw * (Math.PI / 2) * dt;
+    const limit = 85 * Math.PI / 180;
+    look.pitchObject.rotation.x = THREE.MathUtils.clamp(
+      look.pitchObject.rotation.x + pitch * (Math.PI / 3) * dt, -limit, limit);
   },
 
   clearInput: function () {
@@ -325,10 +393,15 @@ AFRAME.registerComponent('training-v4', {
     });
   },
 
-  damage: function (amount = 20) {
+  damage: function (amount = 20, source) {
     if (this.resetAt) return;
 
     this.hp = Math.max(0, this.hp - amount);
+    const feedback = this.el.components['ability-test'];
+    if (feedback && feedback.hitFeedback) {
+      feedback.hitFeedback(source || (amount === 25 ? 'knife' : 'punch'), this.target.object3D.position);
+    }
+
 
     if (this.hp === 0) {
       this.target.setAttribute('color', '#FFD54F');
@@ -347,6 +420,8 @@ AFRAME.registerComponent('training-v4', {
   },
 
   desktopPunch: function () {
+    const cutter = this.el.components['plasma-cutter'];
+    if (cutter && cutter.active) { cutter.desktopSwing(); return; }
     const now = performance.now();
 
     if (now < this.nextClick) return;
@@ -409,6 +484,7 @@ AFRAME.registerComponent('training-v4', {
   },
 
   tick: function (time, delta) {
+    if (this.el.components['pause-menu'] && this.el.components['pause-menu'].opened) return;
     if (document.hidden || !delta || delta > 100) {
       this.clearInput();
       return;
@@ -428,6 +504,7 @@ AFRAME.registerComponent('training-v4', {
     const dt = delta / 1000;
     const now = performance.now();
     const vr = this.inVR();
+    this.stepKeyboardLook(dt);
 
     if (vr) {
       const turn = this.axes.turn;
@@ -470,15 +547,12 @@ AFRAME.registerComponent('training-v4', {
       return;
     }
 
-    let x = vr
-      ? this.axes.x
-      : Number(this.keys.has('KeyD')) -
-        Number(this.keys.has('KeyA'));
+    const touch = this.el.components['touch-controls'];
+    let x = vr ? this.axes.x : (touch && touch.moving ? touch.moveX :
+      Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')));
 
-    let y = vr
-      ? this.axes.y
-      : Number(this.keys.has('KeyS')) -
-        Number(this.keys.has('KeyW'));
+    let y = vr ? this.axes.y : (touch && touch.moving ? touch.moveY :
+      Number(this.keys.has('KeyS')) - Number(this.keys.has('KeyW')));
 
     const magnitude = Math.hypot(x, y);
     const deadzone = vr ? 0.18 : 0;
@@ -498,8 +572,7 @@ AFRAME.registerComponent('training-v4', {
 
     const sprintHeld = vr
       ? this.grip
-      : this.keys.has('ShiftLeft') ||
-        this.keys.has('ShiftRight');
+      : this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || (touch && touch.sprint);
 
     if (
       this.exhausted &&
@@ -511,7 +584,7 @@ AFRAME.registerComponent('training-v4', {
 
     const sprint =
       sprintHeld &&
-      y < -0.35 &&
+      Math.hypot(x, y) > 0.35 &&
       this.grounded &&
       !this.exhausted &&
       this.stamina > 0;
@@ -525,7 +598,8 @@ AFRAME.registerComponent('training-v4', {
       if (this.stamina === 0) {
         this.exhausted = true;
       }
-    } else if (this.grounded) {
+    } else if (this.grounded && !(this.el.components['plasma-cutter'] &&
+        this.el.components['plasma-cutter'].guiding)) {
       this.stamina = Math.min(
         100,
         this.stamina + 25 * dt
@@ -817,7 +891,10 @@ AFRAME.registerComponent('training-v4', {
     );
 
     this.hands.forEach(hand => {
-      if (!vr || !hand.connected) {
+      const cutter = this.el.components['plasma-cutter'];
+      const climbingHand = climbing && climbing.hands.find(candidate => candidate.el === hand.el);
+      if (!vr || !hand.connected || (climbingHand && climbingHand.grabbing) ||
+          (cutter && cutter.blocksFist(hand.el))) {
         hand.ready = false;
         return;
       }
@@ -872,15 +949,11 @@ AFRAME.registerComponent('training-v4', {
           : 'READY';
 
     const status =
-      'XR AIM TEST v5.1 | ' +
+      'WRIST LAB v6.2.10 | ' +
       (vr ? 'VR' : 'DESKTOP') + '\n' +
       'Stamina ' +
       Math.ceil(this.stamina) +
-      '/100 | ' + state + '\n' +
-      'Turn: ' + this.mode +
-      ' | Walk: ' +
-      this.walkSpeeds[this.walkIndex] +
-      ' m/s';
+      '/100 | ' + state;
 
     if (status !== this.lastHUD) {
       this.lastHUD = status;
@@ -890,13 +963,7 @@ AFRAME.registerComponent('training-v4', {
         status
       );
 
-      this.hud.textContent =
-        status + ((this.el.components['ability-test'] &&
-          !this.el.components['ability-test'].hints) ? '' : '\n\n' +
-        'WASD: move | Space: jump | Shift: sprint\n' +
-        'Drag mouse: look | Click: short-range punch\n' +
-        'R: reset orb | Aim with center +\n' +
-        'F: returning knife | H: hints | XR Aim Test v5.1');
+      this.hud.textContent = status;
     }
   }
 });
@@ -1261,7 +1328,7 @@ AFRAME.registerComponent('ledge-climb', {
         Math.abs(this.head.z - ledge.z) <
           ledge.depth / 2 + 0.65;
 
-      if (highEnough && nearLedge) {
+      if (highEnough && nearLedge && !ledge.noMantle) {
         const finishX = THREE.MathUtils.clamp(
           this.head.x,
           ledge.x - ledge.width / 2 + 0.3,
@@ -1319,6 +1386,7 @@ AFRAME.registerComponent('ability-test', {
     this.targetBox = new THREE.Box3();
     this.summit = {x: 5, z: -5.2, top: 2.65};
     this.right = document.querySelector('#right');
+    this.left = document.querySelector('#left');
     this.view = document.querySelector('#view');
     this.rig = document.querySelector('#rig');
     this.handSamples = ['#left', '#right'].map(selector => ({
@@ -1360,7 +1428,7 @@ AFRAME.registerComponent('ability-test', {
 
     this.knifeRoot = new THREE.Group();
     this.knifeVisual = new THREE.Group();
-    const bladeMaterial = new THREE.MeshStandardMaterial({color: 0xe0f7ff, metalness: 0.45, roughness: 0.3});
+    const bladeMaterial = new THREE.MeshStandardMaterial({color: 0x28c7ff, emissive: 0x006eff, emissiveIntensity: 1.2, metalness: 0.35, roughness: 0.22});
     const blade = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.012, 0.26), bladeMaterial);
     blade.position.z = -0.12;
     this.knifeVisual.add(blade);
@@ -1369,13 +1437,17 @@ AFRAME.registerComponent('ability-test', {
     tip.position.z = -0.295;
     this.knifeVisual.add(tip);
     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, 0.13),
-      new THREE.MeshStandardMaterial({color: 0xffb74d}));
+      new THREE.MeshStandardMaterial({color: 0x10314a, emissive: 0x0055cc, emissiveIntensity: 0.55}));
     handle.position.z = 0.07;
     this.knifeVisual.add(handle);
     this.knifeRoot.add(this.knifeVisual);
     this.knifeRoot.visible = false;
     this.el.object3D.add(this.knifeRoot);
     this.bladeForward = new THREE.Vector3(0, 0, -1);
+    this.knifeSweepBase = new THREE.Vector3();
+    this.knifeSweepTip = new THREE.Vector3();
+    this.knifeSweepQ = new THREE.Quaternion();
+    this.knifeSweepEndQ = new THREE.Quaternion();
     this.aimMatrix = new THREE.Matrix4();
     this.aimOrigin = new THREE.Vector3();
     this.aimDirection = new THREE.Vector3();
@@ -1399,16 +1471,16 @@ AFRAME.registerComponent('ability-test', {
     this.el.object3D.add(this.aimDot);
 
 
+    this.initFeedback();
     this.right.addEventListener('triggerdown', () => {
-      if (this.el.is('vr-mode')) this.throwRequested = true;
-    });
-    this.right.addEventListener('thumbstickdown', () => {
-      if (this.el.is('vr-mode')) this.toggleHints();
+      this.unlockAudio();
+      const cutter = this.el.components['plasma-cutter'];
+      if (this.el.is('vr-mode') && !(cutter && cutter.active)) this.requestPrimary();
     });
     window.addEventListener('keydown', event => {
       if (event.repeat || this.el.is('vr-mode')) return;
       if (event.target.closest && event.target.closest('input,textarea,[contenteditable]')) return;
-      if (event.code === 'KeyF') { event.preventDefault(); this.throwRequested = true; }
+      if (event.code === 'KeyE') { event.preventDefault(); this.requestPrimary(); }
       if (event.code === 'KeyH') { event.preventDefault(); this.toggleHints(); }
     });
     ['enter-vr', 'exit-vr'].forEach(name => this.el.addEventListener(name, () => this.cancelKnife()));
@@ -1419,7 +1491,259 @@ AFRAME.registerComponent('ability-test', {
     });
   },
 
-  readAim: function (origin, direction) {
+  requestPrimary: function () {
+    this.throwRequested = true;
+    const cutter = this.el.components['plasma-cutter'];
+    if (cutter && cutter.active) cutter.beginPress();
+  },
+
+  initFeedback: function () {
+    this.soundVolume = 0.30;
+    this.muted = false;
+    try {
+      const saved = JSON.parse(localStorage.getItem('descent-audio-v1') || 'null');
+      if (saved) {
+        if (typeof saved.volume === 'number' && Number.isFinite(saved.volume))
+          this.soundVolume = THREE.MathUtils.clamp(saved.volume, 0, 1);
+        this.muted = saved.muted === true;
+      }
+    } catch (error) {}
+    this.audioContext = null;
+    this.masterGain = null;
+    this.effectCursor = 0;
+    this.effects = [];
+    for (let index = 0; index < 8; index++) {
+      const vertices = [];
+      for (let ray = 0; ray < 8; ray++) {
+        const angle = ray * Math.PI / 4;
+        const height = ray % 2 ? 0.5 : -0.5;
+        vertices.push(Math.cos(angle) * 0.025, height * 0.025, Math.sin(angle) * 0.025,
+          Math.cos(angle) * 0.11, height * 0.11, Math.sin(angle) * 0.11);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      const mesh = new THREE.LineSegments(geometry,
+        new THREE.LineBasicMaterial({color: 0xffd166, transparent: true, opacity: 1}));
+      mesh.visible = false;
+      this.el.object3D.add(mesh);
+      this.effects.push({mesh: mesh, life: 0, duration: 0.22});
+    }
+    // Static scenery blocks projectiles only. Player collisions remain unchanged.
+    this.decorativeSolids = [
+      {x: -2, z: -5, width: 0.6, depth: 0.6, bottom: 0, top: 3},
+      {x: 2, z: -5, width: 0.6, depth: 0.6, bottom: 0, top: 3},
+      {x: 0, z: -5, width: 4.6, depth: 0.6, bottom: 3, top: 3.4},
+      {x: 4, z: 0, width: 1, depth: 1, bottom: 0, top: 1},
+      {x: -4, z: 0, width: 1, depth: 1, bottom: 0, top: 1}
+    ];
+    this.soundButtons = [];
+    this.soundPanel = document.createElement('a-entity');
+    const backing = document.createElement('a-plane');
+    backing.setAttribute('position', '-3 1.32 -1.66');
+    backing.setAttribute('width', 2.05);
+    backing.setAttribute('height', 0.7);
+    backing.setAttribute('color', '#142232');
+    this.soundPanel.appendChild(backing);
+    this.soundLabel = document.createElement('a-text');
+    this.soundLabel.setAttribute('position', '-3 1.51 -1.62');
+    this.soundLabel.setAttribute('align', 'center');
+    this.soundLabel.setAttribute('width', 1.8);
+    this.soundPanel.appendChild(this.soundLabel);
+    ['mute', 'down', 'up', 'test'].forEach((action, index) => {
+      const x = -3.69 + index * 0.46;
+      const button = document.createElement('a-box');
+      button.setAttribute('position', {x: x, y: 1.20, z: -1.60});
+      button.setAttribute('width', 0.42);
+      button.setAttribute('height', 0.22);
+      button.setAttribute('depth', 0.05);
+      button.setAttribute('color', '#35516B');
+      this.soundPanel.appendChild(button);
+      const label = document.createElement('a-text');
+      label.setAttribute('position', {x: x, y: 1.20, z: -1.568});
+      label.setAttribute('align', 'center');
+      label.setAttribute('width', 0.7);
+      label.setAttribute('value', ['MUTE', 'VOL -', 'VOL +', 'TEST'][index]);
+      this.soundPanel.appendChild(label);
+      this.soundButtons.push({action: action,
+        box: new THREE.Box3(new THREE.Vector3(x - 0.21, 1.09, -1.635),
+          new THREE.Vector3(x + 0.21, 1.31, -1.565))});
+    });
+    this.el.appendChild(this.soundPanel);
+    this.soundPanel.object3D.visible = false;
+    const panel = document.createElement('div');
+    panel.id = 'audio-panel';
+    panel.innerHTML = '<span id="audio-label"></span> <button type="button" data-audio="mute">Mute</button> <button type="button" data-audio="down">Vol -</button> <button type="button" data-audio="up">Vol +</button> <button type="button" data-audio="test">Test sound</button>';
+    document.body.appendChild(panel);
+    panel.querySelectorAll('button').forEach(button => {
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        this.soundAction(button.dataset.audio);
+      });
+    });
+    panel.addEventListener('keydown', event => event.stopPropagation());
+    window.addEventListener('pointerdown', () => this.unlockAudio(), {capture: true});
+    window.addEventListener('keydown', event => {
+      if (event.target.closest && event.target.closest('input,textarea,[contenteditable],button')) return;
+      this.unlockAudio();
+      if (event.repeat || this.el.is('vr-mode')) return;
+      if (event.code === 'KeyM') this.soundAction('mute');
+      if (event.code === 'BracketLeft') this.soundAction('down');
+      if (event.code === 'BracketRight') this.soundAction('up');
+    });
+    this.el.addEventListener('enter-vr', () => this.unlockAudio());
+    this.updateAudioSettings();
+  },
+
+  unlockAudio: function () {
+    try {
+      if (!this.audioContext || this.audioContext.state === 'closed') {
+        const Context = window.AudioContext || window.webkitAudioContext;
+        if (!Context) return Promise.resolve(false);
+        this.audioContext = new Context();
+        this.masterGain = this.audioContext.createGain();
+        const limiter = this.audioContext.createDynamicsCompressor();
+        limiter.threshold.value = -12;
+        limiter.knee.value = 16;
+        limiter.ratio.value = 6;
+        limiter.attack.value = 0.003;
+        limiter.release.value = 0.10;
+        this.masterGain.connect(limiter);
+        limiter.connect(this.audioContext.destination);
+        this.updateAudioSettings();
+      }
+      if (this.audioContext.state === 'suspended') {
+        return this.audioContext.resume().then(() => this.audioContext.state === 'running').catch(() => false);
+      }
+      return Promise.resolve(this.audioContext.state === 'running');
+    } catch (error) { return Promise.resolve(false); }
+  },
+
+  updateAudioSettings: function () {
+    if (this.masterGain && this.audioContext) {
+      this.masterGain.gain.setTargetAtTime(this.muted ? 0 : this.soundVolume,
+        this.audioContext.currentTime, 0.015);
+    }
+    const text = this.muted ? 'SFX MUTED' : 'SFX ' + Math.round(this.soundVolume * 100) + '%';
+    if (this.soundLabel) this.soundLabel.setAttribute('value', 'SOUND CONTROLS | ' + text + '\nAim at button + right trigger (within 3m)');
+    const label = document.querySelector('#audio-label');
+    if (label) label.textContent = text;
+    try { localStorage.setItem('descent-audio-v1', JSON.stringify({volume: this.soundVolume, muted: this.muted})); }
+    catch (error) {}
+  },
+
+  soundAction: function (action) {
+    const ready = this.unlockAudio();
+    if (action === 'mute') this.muted = !this.muted;
+    if (action === 'down') this.soundVolume = Math.max(0, Math.round((this.soundVolume - 0.1) * 10) / 10);
+    if (action === 'up') this.soundVolume = Math.min(1, Math.round((this.soundVolume + 0.1) * 10) / 10);
+    this.updateAudioSettings();
+    this.lastHit = this.muted ? 'SFX MUTED' : 'SFX ' + Math.round(this.soundVolume * 100) + '%';
+    this.feedbackUntil = this.clock + 1.5;
+    if (action === 'test') ready.then(ok => {
+      if (ok) this.playEffect('wall');
+      else {
+        this.lastHit = 'Audio not unlocked - click Test sound in browser';
+        this.feedbackUntil = this.clock + 3;
+      }
+    });
+  },
+
+  playEffect: function (kind) {
+    const ctx = this.audioContext;
+    if (!ctx || ctx.state !== 'running' || this.muted || this.soundVolume <= 0) return;
+    const t = ctx.currentTime;
+    const tone = (frequency, endFrequency, duration, volume, type) => {
+      const oscillator = ctx.createOscillator();
+      const envelope = ctx.createGain();
+      oscillator.type = type || 'sine';
+      oscillator.frequency.setValueAtTime(frequency, t);
+      oscillator.frequency.exponentialRampToValueAtTime(endFrequency, t + duration);
+      envelope.gain.setValueAtTime(0.0001, t);
+      envelope.gain.exponentialRampToValueAtTime(volume, t + 0.005);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      oscillator.connect(envelope);
+      envelope.connect(this.masterGain);
+      oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
+      oscillator.start(t);
+      oscillator.stop(t + duration + 0.02);
+    };
+    try {
+      if (kind === 'wall') {
+        tone(920, 750, 0.21, 0.14, 'sine');
+        tone(1531, 1300, 0.15, 0.07, 'sine');
+        tone(2377, 1900, 0.09, 0.035, 'triangle');
+      } else if (kind === 'punch') {
+        tone(150, 55, 0.12, 0.22, 'triangle');
+        tone(80, 45, 0.09, 0.10, 'sine');
+      } else if (kind === 'knife') {
+        tone(640, 1040, 0.085, 0.14, 'triangle');
+        tone(1280, 820, 0.12, 0.055, 'sine');
+      } else if (kind === 'launch') {
+        tone(240, 1050, 0.20, 0.19, 'triangle');
+        tone(110, 360, 0.17, 0.12, 'sine');
+      } else if (kind === 'retrieve') {
+        tone(950, 270, 0.22, 0.16, 'triangle');
+        tone(300, 150, 0.18, 0.09, 'sine');
+      } else if (kind === 'hover') {
+        tone(620, 440, 0.08, 0.075, 'sine');
+      } else if (kind === 'ignite') {
+        tone(120, 850, 0.22, 0.12, 'triangle');
+        tone(60, 220, 0.18, 0.08, 'sine');
+      } else if (kind === 'extinguish') {
+        tone(650, 85, 0.18, 0.09, 'triangle');
+      } else if (kind === 'plasma') {
+        tone(180, 70, 0.12, 0.16, 'triangle');
+        tone(1700, 540, 0.13, 0.065, 'sine');
+      } else if (kind === 'catch') {
+        tone(440, 660, 0.075, 0.085, 'sine');
+      }
+    } catch (error) {}
+  },
+
+  hitFeedback: function (kind, position) {
+    this.playEffect(kind);
+    if (!this.effects || !this.effects.length || !position) return;
+    const effect = this.effects[this.effectCursor++ % this.effects.length];
+    effect.duration = kind === 'catch' ? 0.13 : 0.22;
+    effect.life = effect.duration;
+    effect.mesh.position.copy(position);
+    effect.mesh.scale.setScalar(kind === 'catch' ? 0.6 : 1);
+    effect.mesh.material.color.setHex(kind === 'wall' ? 0xffc04d : kind === 'catch' ? 0x88ffd0 : 0x55ddff);
+    effect.mesh.material.opacity = 1;
+    effect.mesh.visible = true;
+  },
+
+  updateFeedback: function (dt) {
+    this.effects.forEach(effect => {
+      if (effect.life <= 0) return;
+      effect.life = Math.max(0, effect.life - dt);
+      const progress = 1 - effect.life / effect.duration;
+      effect.mesh.visible = effect.life > 0;
+      effect.mesh.material.opacity = 1 - progress;
+      effect.mesh.scale.setScalar((effect.duration < 0.2 ? 0.6 : 1) + progress * 1.7);
+    });
+  },
+
+  blockingDistance: function (start, direction, length, training) {
+    let nearest = Infinity;
+    const check = solid => {
+      this.box.min.set(solid.x - solid.width / 2, solid.bottom || 0, solid.z - solid.depth / 2);
+      this.box.max.set(solid.x + solid.width / 2, solid.top, solid.z + solid.depth / 2);
+      const distance = this.box.containsPoint(start) ? 0 : this.segmentDistance(start, direction, length, this.box);
+      nearest = Math.min(nearest, distance);
+    };
+    (training.practicePlatforms || []).forEach(check);
+    this.decorativeSolids.forEach(check);
+    if (direction.y < -0.00001) {
+      const floor = (0.01 - start.y) / direction.y;
+      if (floor >= 0 && floor <= length) nearest = Math.min(nearest, floor);
+    }
+    return nearest;
+  },
+
+  findSoundButton: function () { return null; },
+
+  readAim: function (origin, direction, handedness) {
     if (!this.el.is('vr-mode')) {
       this.rig.object3D.updateWorldMatrix(true, true);
       this.view.object3D.getWorldPosition(origin);
@@ -1435,14 +1759,15 @@ AFRAME.registerComponent('ability-test', {
       tracked.referenceSpace : xr.getReferenceSpace();
     if (!session || session.visibilityState !== 'visible' || !frame || !referenceSpace) return false;
     const source = Array.from(session.inputSources).find(input =>
-      input.handedness === 'right' && input.targetRayMode === 'tracked-pointer' && !input.hand);
+      input.handedness === (handedness || 'right') && input.targetRayMode === 'tracked-pointer' && !input.hand);
     if (!source || !source.targetRaySpace) return false;
     let pose;
     try { pose = frame.getPose(source.targetRaySpace, referenceSpace); }
     catch (error) { return false; }
     if (!pose) return false;
     // XR poses are relative to the tracking origin; apply the locomotion parent once.
-    const parent = this.right.object3D.parent;
+    const controller = handedness === 'left' ? this.left : this.right;
+    const parent = controller && controller.object3D.parent;
     if (!parent) return false;
     parent.updateWorldMatrix(true, false);
     this.aimMatrix.fromArray(pose.transform.matrix);
@@ -1466,20 +1791,22 @@ AFRAME.registerComponent('ability-test', {
     this.aimLine.visible = visible;
     this.aimDot.visible = visible;
     if (!visible) return;
-    let distance = 9;
+    const cutter = this.el.components['plasma-cutter'];
+    const range = cutter && cutter.active ? 12 : 9;
+    let distance = range;
     if (this.hp > 0) distance = Math.min(distance,
-      this.segmentDistance(this.aimOrigin, this.aimDirection, 9, this.targetBox));
+      this.segmentDistance(this.aimOrigin, this.aimDirection, range, this.targetBox));
     if (training.hp > 0 && !training.resetAt) {
       training.target.object3D.getWorldPosition(this.orbSphere.center);
       distance = Math.min(distance,
-        this.segmentSphereDistance(this.aimOrigin, this.aimDirection, 9, this.orbSphere));
+        this.segmentSphereDistance(this.aimOrigin, this.aimDirection, range, this.orbSphere));
     }
-    (training.practicePlatforms || []).forEach(platform => {
-      this.box.min.set(platform.x - platform.width / 2, 0, platform.z - platform.depth / 2);
-      this.box.max.set(platform.x + platform.width / 2, platform.top, platform.z + platform.depth / 2);
-      distance = Math.min(distance, this.box.containsPoint(this.aimOrigin) ? 0 :
-        this.segmentDistance(this.aimOrigin, this.aimDirection, 9, this.box));
-    });
+    distance = Math.min(distance, this.blockingDistance(this.aimOrigin, this.aimDirection, range, training));
+    const menu = this.findSoundButton(this.aimOrigin, this.aimDirection, training);
+    if (menu) distance = Math.min(distance, menu.distance);
+    const guideColor = menu ? 0xffd166 : 0x55ddff;
+    this.aimLine.material.color.setHex(guideColor);
+    this.aimDot.material.color.setHex(guideColor);
     this.aimEnd.copy(this.aimOrigin).addScaledVector(this.aimDirection, distance);
     const attribute = this.aimLine.geometry.attributes.position;
     attribute.setXYZ(0, this.aimOrigin.x, this.aimOrigin.y, this.aimOrigin.z);
@@ -1514,7 +1841,7 @@ AFRAME.registerComponent('ability-test', {
   },
 
   throwKnife: function () {
-    if (document.hidden || this.state !== 'READY' || this.cooldown > 0) return;
+    if (document.hidden) return;
     const vr = this.el.is('vr-mode');
     if (vr) {
       const session = this.el.renderer.xr.getSession();
@@ -1527,6 +1854,17 @@ AFRAME.registerComponent('ability-test', {
       this.feedbackUntil = this.clock + 1.5;
       return;
     }
+    const training = this.el.components['training-v4'];
+    const menu = this.findSoundButton(this.origin, this.direction, training);
+    if (menu) {
+      this.soundAction(menu.action);
+      const cutter = this.el.components['plasma-cutter'];
+      if (cutter) cutter.clearTrigger();
+      return;
+    }
+    const cutter = this.el.components['plasma-cutter'];
+    if (cutter && cutter.active) { cutter.primaryAction(this.origin, this.direction); return; }
+    if (this.state !== 'READY' || this.cooldown > 0) return;
     this.knifeRoot.position.copy(this.origin);
     this.velocity.copy(this.direction).multiplyScalar(10);
     this.knifeRoot.quaternion.setFromUnitVectors(this.bladeForward, this.direction);
@@ -1538,9 +1876,11 @@ AFRAME.registerComponent('ability-test', {
     this.knifeRoot.visible = true;
   },
 
-  damageDummy: function (amount, source) {
+  damageDummy: function (amount, source, contact) {
     if (this.hp <= 0) return;
     this.hp = Math.max(0, this.hp - amount);
+    this.hitFeedback(source === 'PLASMA' ? 'plasma' : source === 'KNIFE' ? 'knife' : 'punch',
+      contact || (source === 'KNIFE' ? this.knifeRoot.position : this.next));
     this.lastHit = source + ' HIT -' + amount;
     this.feedbackUntil = this.clock + 1.5;
     this.flashUntil = this.clock + 0.18;
@@ -1561,6 +1901,75 @@ AFRAME.registerComponent('ability-test', {
     return distance <= length + 0.0001 ? distance : Infinity;
   },
 
+  sampleKnifeTargets: function (position, direction, length, training, dt) {
+    const result = {dummy: Infinity, orb: Infinity};
+    const cutter = this.el.components['plasma-cutter'];
+    if (!cutter) return result;
+    const startQ = this.knifeRoot.quaternion;
+    this.knifeSweepEndQ.copy(startQ);
+    if (this.state === 'RETURNING' && length > 0.000001) {
+      this.knifeSweepEndQ.setFromUnitVectors(this.bladeForward, direction);
+    }
+    const spin = (dt || 0) * 18;
+    const startAngle = this.knifeVisual.rotation.x - spin;
+    const travel = length + Math.abs(spin) * 0.34 + startQ.angleTo(this.knifeSweepEndQ) * 0.34;
+    const steps = Math.min(48, Math.max(1, Math.ceil(travel / 0.025)));
+    const hits = {dummy: false, orb: false};
+    for (let index = 0; index <= steps; index++) {
+      const t = index / steps, angle = startAngle + spin * t;
+      this.knifeSweepQ.slerpQuaternions(startQ, this.knifeSweepEndQ, t);
+      // Actual blade, from its shoulder to its tip; excludes the rear handle.
+      this.knifeSweepBase.set(0, -Math.sin(angle) * 0.015, Math.cos(angle) * 0.015)
+        .applyQuaternion(this.knifeSweepQ).add(position).addScaledVector(direction, length * t);
+      this.knifeSweepTip.set(0, Math.sin(angle) * 0.34, -Math.cos(angle) * 0.34)
+        .applyQuaternion(this.knifeSweepQ).add(position).addScaledVector(direction, length * t);
+      hits.dummy = hits.orb = false;
+      // Shared target/wall test keeps knife and cutter contact coverage consistent.
+      cutter.testBladeSegment(this.knifeSweepBase, this.knifeSweepTip, training, hits);
+      if (hits.dummy && !Number.isFinite(result.dummy)) result.dummy = length * t;
+      if (hits.orb && !Number.isFinite(result.orb)) result.orb = length * t;
+    }
+    return result;
+  },
+
+  beginKnifeReturn: function (training) {
+    if (this.state === 'RETURNING') return;
+    this.state = 'RETURNING';
+    this.knifeReturnHits = {dummy: false, orb: false};
+    this.knifeReturnBlocked = false;
+    const position = this.knifeRoot.position;
+    const touching = this.sampleKnifeTargets(position, this.direction, 0, training, 0);
+    this.knifeReturnArmed = {
+      dummy: !Number.isFinite(touching.dummy), orb: !Number.isFinite(touching.orb)
+    };
+  },
+
+  stepKnifeReturnDamage: function (position, direction, length, training, dt) {
+    if (this.knifeReturnBlocked || length < 0.000001) return;
+    if (Number.isFinite(this.blockingDistance(position, direction, length, training))) {
+      this.knifeReturnBlocked = true;
+      return;
+    }
+    const swept = this.sampleKnifeTargets(position, direction, length, training, dt);
+    const dummy = swept.dummy, orb = swept.orb;
+    for (const kind of ['dummy', 'orb']) {
+      const distance = kind === 'dummy' ? dummy : orb;
+      if (!Number.isFinite(distance)) { this.knifeReturnArmed[kind] = true; continue; }
+      if (!this.knifeReturnArmed[kind] || this.knifeReturnHits[kind]) continue;
+      this.knifeReturnHits[kind] = true;
+      this.knifeReturnArmed[kind] = false;
+      if (kind === 'dummy') {
+        this.next.copy(position).addScaledVector(direction, distance);
+        this.damageDummy(12, 'KNIFE', this.next);
+        this.lastHit += ' | RETURN';
+      } else {
+        training.damage(12, 'knife');
+        this.lastHit = 'ORB KNIFE RETURN HIT -12';
+      }
+      this.feedbackUntil = this.clock + 1.5;
+    }
+  },
+
   stepKnife: function (dt, training) {
     if (this.state === 'READY') return;
     this.flightAge += dt;
@@ -1570,25 +1979,13 @@ AFRAME.registerComponent('ability-test', {
       const length = Math.min(10 * dt, 9 - this.distanceTravelled);
       this.direction.copy(this.velocity).normalize();
       const position = this.knifeRoot.position;
-      let targetDistance = this.hp > 0 && !this.hitThisThrow ?
-        this.segmentDistance(position, this.direction, length, this.targetBox) : Infinity;
-      let hitKind = 'dummy';
-      if (!this.hitThisThrow && training.hp > 0 && !training.resetAt) {
-        training.target.object3D.getWorldPosition(this.orbSphere.center);
-        const orbDistance = this.segmentSphereDistance(position, this.direction, length, this.orbSphere);
-        if (orbDistance < targetDistance) { targetDistance = orbDistance; hitKind = 'orb'; }
-      }
-      let wallDistance = Infinity;
-      (training.practicePlatforms || []).forEach(platform => {
-        this.box.min.set(platform.x - platform.width / 2, 0, platform.z - platform.depth / 2);
-        this.box.max.set(platform.x + platform.width / 2, platform.top, platform.z + platform.depth / 2);
-        // If a throw starts inside a solid, recall it rather than shoot through.
-        const distance = this.box.containsPoint(position) ? 0 :
-          this.segmentDistance(position, this.direction, length, this.box);
-        wallDistance = Math.min(wallDistance, distance);
-      });
+      const swept = this.sampleKnifeTargets(position, this.direction, length, training, dt);
+      let targetDistance = this.hitThisThrow ? Infinity : Math.min(swept.dummy, swept.orb);
+      const hitKind = swept.orb < swept.dummy ? 'orb' : 'dummy';
+      const wallDistance = this.blockingDistance(position, this.direction, length, training);
       if (Number.isFinite(targetDistance) && targetDistance < wallDistance) {
         position.addScaledVector(this.direction, targetDistance);
+        this.knifeVisual.rotation.x -= dt * 18 * (1 - targetDistance / Math.max(length, 0.000001));
         this.hitThisThrow = true;
         if (hitKind === 'orb') {
           training.damage(25);
@@ -1597,16 +1994,17 @@ AFRAME.registerComponent('ability-test', {
         } else {
           this.damageDummy(25, 'KNIFE');
         }
-        this.state = 'RETURNING';
+        this.beginKnifeReturn(training);
       } else if (Number.isFinite(wallDistance)) {
         position.addScaledVector(this.direction, Math.max(0, wallDistance - 0.025));
-        this.state = 'RETURNING';
+        this.beginKnifeReturn(training);
+        this.hitFeedback('wall', position);
         this.lastHit = 'BLOCKED - knife returning';
         this.feedbackUntil = this.clock + 1;
       } else {
         position.addScaledVector(this.direction, length);
         this.distanceTravelled += length;
-        if (this.distanceTravelled >= 8.999) this.state = 'RETURNING';
+        if (this.distanceTravelled >= 8.999) this.beginKnifeReturn(training);
       }
     } else if (this.state === 'RETURNING') {
       const source = this.el.is('vr-mode') ? this.right : this.view;
@@ -1614,10 +2012,14 @@ AFRAME.registerComponent('ability-test', {
       source.object3D.getWorldPosition(this.origin);
       this.deltaVector.copy(this.origin).sub(this.knifeRoot.position);
       const distance = this.deltaVector.length();
-      if (distance <= Math.max(0.15, 14 * dt)) {
+      const catching = distance <= Math.max(0.15, 14 * dt);
+      this.direction.copy(this.deltaVector).normalize();
+      this.stepKnifeReturnDamage(this.knifeRoot.position, this.direction, catching ? distance : 14 * dt, training, dt);
+      if (catching) {
         this.knifeRoot.visible = false;
         this.state = 'READY';
         this.cooldown = 0.45;
+        this.hitFeedback('catch', this.origin);
       } else {
         this.direction.copy(this.deltaVector).normalize();
         this.knifeRoot.position.addScaledVector(this.direction, 14 * dt);
@@ -1627,6 +2029,7 @@ AFRAME.registerComponent('ability-test', {
   },
 
   tick: function (time, delta) {
+    if (this.el.components['pause-menu'] && this.el.components['pause-menu'].opened) return;
     if (document.hidden || !delta || delta > 100) return;
     if (this.el.is('vr-mode')) {
       const session = this.el.renderer.xr.getSession();
@@ -1637,7 +2040,9 @@ AFRAME.registerComponent('ability-test', {
     const dt = delta / 1000;
     this.clock += dt;
     this.cooldown = Math.max(0, this.cooldown - dt);
-    const aimValid = this.readAim(this.aimOrigin, this.aimDirection);
+    this.updateFeedback(dt);
+    const owner = this.el.components['plasma-cutter'];
+    const aimValid = this.readAim(this.aimOrigin, this.aimDirection, owner && owner.active ? owner.owningHand : 'right');
     this.updateAimGuide(training, aimValid);
     if (this.throwRequested) {
       this.throwRequested = false;
@@ -1657,7 +2062,9 @@ AFRAME.registerComponent('ability-test', {
     const climbing = this.el.components['ledge-climb'];
     this.handSamples.forEach(sample => {
       const tracked = training.hands.find(hand => hand.el === sample.el);
-      if (!this.el.is('vr-mode') || !tracked || !tracked.connected) { sample.ready = false; return; }
+      const cutter = this.el.components['plasma-cutter'];
+      if (!this.el.is('vr-mode') || !tracked || !tracked.connected ||
+          (cutter && cutter.blocksFist(sample.el))) { sample.ready = false; return; }
       const object = sample.el.object3D;
       const local = object.position;
       object.updateWorldMatrix(true, false);
@@ -1698,13 +2105,17 @@ AFRAME.registerComponent('ability-test', {
     });
 
     const holding = climbing && climbing.hands.some(hand => hand.grabbing);
-    const state = holding ? 'HOLD | Stamina ' + Math.ceil(training.stamina) + '/100 (no drain)' : '';
+    const state = holding ? 'HOLD | Stamina ' + Math.ceil(training.stamina) + '/100 (grip costs 0)' : '';
     const knifeState = this.state === 'READY' && this.cooldown > 0 ? 'RECOVERING' : this.state;
-    let text = 'XR AIM TEST v5.1 | KNIFE ' + knifeState;
+    const cutter = this.el.components['plasma-cutter'];
+    let text = 'WRIST LAB v6.2.10 | ' + (cutter && cutter.active ?
+      'CUTTER ' + (cutter.owningHand || 'right').toUpperCase() + ' ' + cutter.state + (cutter.ignited ? ' ON' : ' OFF') +
+      (cutter.guiding ? ' | TETHER -2/s' : '') +
+      (cutter.state !== 'HELD' ? ' | ' + cutter.root.position.distanceTo(cutter.origin).toFixed(1) + 'm' : '') : 'KNIFE ' + knifeState);
+    text += ' | STA ' + Math.ceil(training.stamina) + '%';
     if (state) text += '\n' + state;
     if (this.clock < this.feedbackUntil) text += '\n' + this.lastHit;
-    else if (this.hints) text += this.el.is('vr-mode') ?
-      '\nRight trigger: knife | R-stick click: hints' : '\nF: knife | H: hints';
+
     if (text !== this.lastStatus) {
       this.status.setAttribute('value', text);
       this.lastStatus = text;
@@ -1713,17 +2124,1652 @@ AFRAME.registerComponent('ability-test', {
 });
 </script>
 
+
+<script>
+AFRAME.registerComponent('plasma-cutter', {
+  init: function () {
+    this.right = document.querySelector('#right');
+    this.left = document.querySelector('#left');
+    this.owningHand = 'right';
+    this.handoffCandidate = null;
+    this.handoffUntil = 0;
+    this.handoffOwnerPosition = new THREE.Vector3();
+    this.handoffOtherPosition = new THREE.Vector3();
+    this.handoffAim = new THREE.Vector3();
+    this.view = document.querySelector('#view');
+    this.rig = document.querySelector('#rig');
+    this.controlStart = new THREE.Vector3();
+    this.controlBlade = new THREE.Vector3();
+    this.controlForward = new THREE.Vector3();
+    this.controlDesired = new THREE.Vector3();
+    this.controlRelative = new THREE.Vector3();
+    this.proposedPosition = new THREE.Vector3();
+    this.safePosition = new THREE.Vector3();
+    this.remoteOldBase = new THREE.Vector3();
+    this.remoteOldTip = new THREE.Vector3();
+    this.remoteBase = new THREE.Vector3();
+    this.remoteTip = new THREE.Vector3();
+    this.poseDirection = new THREE.Vector3();
+    this.posePosition = new THREE.Vector3();
+    this.poseQuaternion = new THREE.Quaternion();
+    this.handWorldQuaternion = new THREE.Quaternion();
+    this.handLocalQuaternion = new THREE.Quaternion();
+    this.handStartQuaternion = new THREE.Quaternion();
+    this.bladeStartQuaternion = new THREE.Quaternion();
+    this.desiredQuaternion = new THREE.Quaternion();
+    this.parentQuaternion = new THREE.Quaternion();
+    this.safeQuaternion = new THREE.Quaternion();
+    this.rollQuaternion = new THREE.Quaternion();
+    this.remoteHistory = false;
+    this.wallLatched = false;
+    this.returnAge = 0;
+    this.safetyReturn = false;
+    this.remoteDepth = 2;
+    this.depthStart = 2;
+    this.remoteRoll = 0;
+    this.controlKeys = new Set();
+    this.armSamples = [];
+    this.armVelocity = new THREE.Vector3();
+    this.lastTapAt = -100;
+    this.primaryBlockedUntil = -100;
+    this.launchSpeed = 8;
+    this.flightLimit = 0.5;
+    this.canRebound = false;
+    this.rebounding = false;
+    this.gripThrowArmed = false;
+    this.gripThrowAt = 0;
+    this.gripThrowStart = new THREE.Vector3();
+    this.guidedSeconds = 0;
+    this.staminaSpent = 0;
+    this.active = false;
+    this.ignited = false;
+    this.state = 'HELD';
+    this.clock = 0;
+    this.cooldown = 0;
+    this.bladeAmount = 0;
+    this.triggerHeld = false;
+    this.pressLaunched = false;
+    this.pressAt = 0;
+    this.guiding = false;
+    this.gestureReady = false;
+    this.stickReady = true;
+    this.historyReady = false;
+    this.flightAge = 0;
+    this.swingAge = -1;
+    this.nextSwing = 0;
+    this.armed = {dummy: false, orb: false};
+    this.nextHit = {dummy: 0, orb: 0};
+    this.returnHits = {dummy: false, orb: false};
+    this.returnArmed = {dummy: true, orb: true};
+    this.returnBlocked = false;
+    this.contact = {dummy: new THREE.Vector3(), orb: new THREE.Vector3()};
+    ['origin', 'aim', 'direction', 'desired', 'velocity', 'end', 'start',
+      'tip', 'base', 'localTip', 'localBase', 'oldTip', 'oldBase', 'sweepStart',
+      'sweepTip', 'sweepDirection', 'point', 'handLocal', 'gestureStart',
+      'gesturePrevious', 'gestureDelta', 'pullDirection', 'offset', 'home',
+      'orbCenter'].forEach(name => { this[name] = new THREE.Vector3(); });
+    this.quaternion = new THREE.Quaternion();
+    this.inverseQuaternion = new THREE.Quaternion();
+    this.up = new THREE.Vector3(0, 1, 0);
+    this.forward = new THREE.Vector3(0, 0, -1);
+    this.targetBox = new THREE.Box3();
+    this.orbSphere = new THREE.Sphere(new THREE.Vector3(), 0.24);
+    this.root = new THREE.Group();
+    const metal = new THREE.MeshStandardMaterial({color: 0x697d90, metalness: 0.7, roughness: 0.3});
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.038, 0.24, 10), metal);
+    hilt.rotation.x = Math.PI / 2;
+    this.root.add(hilt);
+    const emitter = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.045, 10), metal);
+    emitter.rotation.x = Math.PI / 2;
+    emitter.position.z = -0.13;
+    this.root.add(emitter);
+    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.014, 0.065),
+      new THREE.MeshBasicMaterial({color: 0xffba55}));
+    marker.position.set(0.043, 0.01, -0.07);
+    this.root.add(marker);
+    this.ownerMarker = marker;
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.055, 0.12),
+      new THREE.MeshStandardMaterial({color: 0x172936, roughness: 0.9}));
+    grip.position.z = 0.035;
+    this.root.add(grip);
+    this.beam = new THREE.Group();
+    this.beam.position.z = -0.15;
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.90, 8),
+      new THREE.MeshBasicMaterial({color: 0xe8ffff}));
+    core.rotation.x = Math.PI / 2;
+    core.position.z = -0.45;
+    this.beam.add(core);
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.92, 8),
+      new THREE.MeshBasicMaterial({color: 0x23ddff, transparent: true, opacity: 0.25, depthWrite: false}));
+    glow.rotation.x = Math.PI / 2;
+    glow.position.z = -0.45;
+    this.beam.add(glow);
+    this.root.add(this.beam);
+    this.root.visible = false;
+    this.el.object3D.add(this.root);
+    this.anchorVisual = document.createElement('a-box');
+    this.anchorVisual.setAttribute('width',0.30);
+    this.anchorVisual.setAttribute('height',0.06);
+    this.anchorVisual.setAttribute('depth',0.30);
+    this.anchorVisual.setAttribute('color','#53e5c2');
+    this.anchorVisual.setAttribute('material',{shader:'flat',opacity:0.65,transparent:true});
+    this.anchorVisual.object3D.visible = false;
+    this.el.appendChild(this.anchorVisual);
+    this.anchorLedge = {x:0,z:0,top:0,width:0.30,depth:0.30,color:'#53e5c2',
+      mesh:this.anchorVisual,dynamicWeapon:true,noMantle:true};
+    this.anchorLive = false;
+
+    this.right.addEventListener('thumbstickmoved', event => {
+      if (!this.el.is('vr-mode')) return;
+      const x = event.detail.x, y = event.detail.y;
+      if (Math.abs(x) < 0.28 && Math.abs(y) < 0.28) this.stickReady = true;
+      if (Math.abs(x) > 0.45) { this.stickReady = false; return; }
+      if (!this.stickReady || Math.abs(x) > 0.25 || Math.abs(y) < 0.78) return;
+      this.stickReady = false;
+      if (y < 0) this.toggleEquip();
+      else this.toggleBlade();
+    });
+    this.right.addEventListener('bbuttondown', () => {
+      if (this.el.is('vr-mode')) this.toggleAnchor();
+    });
+    [this.right, this.left].forEach(hand => {
+      hand.addEventListener('gripdown', () => {
+        if (!this.el.is('vr-mode')) return;
+        if (hand === this.owner()) this.beginGripThrow();
+        else if (this.active && this.state === 'HELD') this.handoffCandidate = hand;
+      });
+      hand.addEventListener('gripup', () => {
+        if (this.handoffCandidate === hand) this.handoffCandidate = null;
+        if (hand === this.owner()) this.endGripThrow();
+      });
+      hand.addEventListener('triggerdown', () => {
+        const menu = this.el.components['pause-menu'];
+        if (!this.el.is('vr-mode') || !this.active || hand !== this.owner() || (menu && menu.opened)) return;
+        const fx = this.feedback();
+        fx.unlockAudio();
+        if (!fx.readAim(this.origin, this.aim, this.owningHand)) { if (!this.anchorLive) this.cancel(); return; }
+        this.beginPress(); this.primaryAction(this.origin, this.aim);
+      });
+      hand.addEventListener('triggerup', () => { if (hand === this.owner()) this.endPress(); });
+      hand.addEventListener('controllerdisconnected', () => {
+        if (hand === this.owner()) { this.cancel(); this.owningHand = 'right'; if (this.ownerMarker) this.ownerMarker.material.color.setHex(0xffba55); }
+        if (this.handoffCandidate === hand) this.handoffCandidate = null;
+      });
+    });
+    window.addEventListener('keydown', event => {
+      if (this.el.is('vr-mode') || event.repeat) return;
+      if (event.target.closest && event.target.closest('input,textarea,[contenteditable],button')) return;
+      if (event.code === 'KeyC') { event.preventDefault(); this.toggleEquip(); }
+      if (event.code === 'KeyV') { event.preventDefault(); this.toggleBlade(); }
+      if (event.code === 'KeyO') { event.preventDefault(); this.toggleAnchor(); }
+    });
+    window.addEventListener('keydown', event => {
+      if (this.el.is('vr-mode') || (event.target.closest && event.target.closest('input,textarea,[contenteditable],button'))) return;
+      if (['KeyI', 'KeyK', 'KeyJ', 'KeyL'].includes(event.code)) {
+        event.preventDefault(); this.controlKeys.add(event.code);
+      }
+      if (event.code === 'KeyG' && !event.repeat) this.recall('RETRIEVE - returning');
+    });
+    window.addEventListener('keyup', event => {
+      if (event.code === 'KeyE') this.endPress();
+      this.controlKeys.delete(event.code);
+    });
+    ['enter-vr', 'exit-vr'].forEach(name => this.el.addEventListener(name, () => { this.owningHand = 'right'; if (this.ownerMarker) this.ownerMarker.material.color.setHex(0xffba55); this.cancel(); }));
+    window.addEventListener('blur', () => this.cancel());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.cancel(); });
+  },
+
+  owner: function () { return this.owningHand === 'left' ? this.left : this.right; },
+
+  tryHandoff: function () {
+    const candidate = this.handoffCandidate, menu = this.el.components['pause-menu'];
+    if (!candidate || !this.el.is('vr-mode') || document.hidden || (menu && menu.opened) ||
+        !this.active || this.state !== 'HELD' || this.cooldown > 0 || this.clock < this.handoffUntil) return false;
+    const owner = this.owner();
+    if (candidate === owner) { this.handoffCandidate = null; return false; }
+    const climbing = this.el.components['ledge-climb'], training = this.el.components['training-v4'];
+    if (!climbing || !training) return false;
+    const from = climbing.hands.find(hand => hand.el === owner);
+    const to = climbing.hands.find(hand => hand.el === candidate);
+    if (!from || !to || !from.held || !to.held || from.grabbing || to.grabbing ||
+        !training.hands.some(hand => hand.el === owner && hand.connected) ||
+        !training.hands.some(hand => hand.el === candidate && hand.connected)) return false;
+    owner.object3D.updateWorldMatrix(true, false); candidate.object3D.updateWorldMatrix(true, false);
+    owner.object3D.getWorldPosition(this.handoffOwnerPosition);
+    candidate.object3D.getWorldPosition(this.handoffOtherPosition);
+    if (this.handoffOwnerPosition.distanceTo(this.handoffOtherPosition) > 0.22) return false;
+    const nextOwner = candidate === this.left ? 'left' : 'right';
+    if (!this.feedback().readAim(this.handoffOtherPosition, this.handoffAim, nextOwner)) return false;
+    this.owningHand = nextOwner;
+    this.clearTrigger();
+    this.handoffUntil = this.clock + 0.35;
+    this.armSamples.length = 0; this.armVelocity.set(0,0,0);
+    this.historyReady = this.remoteHistory = this.gestureReady = false;
+    this.controlKeys.clear();
+    this.feedback().throwRequested = false;
+    if (this.ownerMarker) this.ownerMarker.material.color.setHex(this.owningHand === 'left' ? 0x8eafff : 0xffba55);
+    this.feedback().playEffect('catch');
+    this.message('CUTTER -> ' + this.owningHand.toUpperCase() + ' HAND - release grips; this hand owns tether');
+    return true;
+  },
+
+  anchorHeld: function () {
+    const climbing = this.el.components['ledge-climb'];
+    return !!climbing && climbing.hands.some(hand => hand.grabbing && hand.ledge === this.anchorLedge);
+  },
+
+  toggleAnchor: function () {
+    const menu = this.el.components['pause-menu'];
+    if (document.hidden || (menu && menu.opened) || !this.active) return;
+    if (this.anchorLive) {
+      if (!this.removeAnchor(false)) return;
+      this.state = 'HOVER';
+      this.remoteHistory = false;
+      this.message('ANCHOR RELEASED - blade stays off; trigger to tether or retrieve');
+    } else this.placeAnchor();
+  },
+
+  placeAnchor: function () {
+    const training = this.el.components['training-v4'], climbing = this.el.components['ledge-climb'];
+    const fx = this.feedback(), menu = this.el.components['pause-menu'];
+    if (!this.active || this.anchorLive || document.hidden || (menu && menu.opened) ||
+        !training || !climbing || !climbing.routeBuilt || !fx || this.cooldown > 0 ||
+        this.state === 'RETURNING' || climbing.hands.some(hand => hand.grabbing)) return false;
+    if (!['HELD','HOVER','CONTROLLED','OUTBOUND'].includes(this.state)) return false;
+    if (this.state === 'HELD') {
+      if (!fx.readAim(this.origin,this.aim,this.owningHand)) return false;
+      this.root.position.copy(this.origin);
+      if (this.el.is('vr-mode')) this.root.quaternion.setFromRotationMatrix(fx.aimMatrix).normalize();
+      else {
+        this.view.object3D.getWorldQuaternion(this.quaternion);
+        this.offset.set(0.22,-0.20,-0.18).applyQuaternion(this.quaternion);
+        this.root.position.add(this.offset); this.root.quaternion.copy(this.quaternion);
+      }
+    }
+    if (this.root.position.y < 0.20 || Number.isFinite(fx.blockingDistance(this.root.position,this.up,0.08,training))) {
+      this.message('Move cutter clear of floor, wall or platform before anchoring'); return false;
+    }
+    this.clearTrigger();
+    fx.throwRequested = false;
+    this.state = 'ANCHORED';
+    this.ignited = false; this.bladeAmount = 0; this.beam.visible = false;
+    this.rebounding = this.canRebound = false;
+    this.historyReady = this.remoteHistory = false;
+    this.velocity.set(0,0,0); this.stopHum();
+    this.anchorLedge.x = this.root.position.x;
+    this.anchorLedge.z = this.root.position.z;
+    this.anchorLedge.top = this.root.position.y;
+    this.anchorVisual.setAttribute('position',{x:this.anchorLedge.x,y:this.anchorLedge.top-0.03,z:this.anchorLedge.z});
+    this.anchorVisual.setAttribute('color',this.anchorLedge.color);
+    this.anchorVisual.object3D.visible = true;
+    this.root.visible = true;
+    if (!climbing.ledges.includes(this.anchorLedge)) climbing.ledges.push(this.anchorLedge);
+    this.anchorLive = true;
+    fx.playEffect('catch');
+    this.message('CUTTER ANCHORED - grip mint pad, pull to climb; A launches; B releases when clear');
+    return true;
+  },
+
+  removeAnchor: function (force) {
+    if (!this.anchorLive) return true;
+    const climbing = this.el.components['ledge-climb'], training = this.el.components['training-v4'];
+    if (this.anchorHeld()) {
+      if (!force) { this.clearTrigger(); this.message('Release the cutter climbing hold before moving or retrieving it'); return false; }
+      climbing.releaseAll();
+      if (training) { training.velocityY = 0; training.grounded = false; }
+    }
+    if (climbing) {
+      const index = climbing.ledges.indexOf(this.anchorLedge);
+      if (index >= 0) climbing.ledges.splice(index,1);
+      if (climbing.ledge === this.anchorLedge) {
+        climbing.wasClimbing = false;
+        const fallback = climbing.ledges.find(ledge => !ledge.dynamicWeapon);
+        if (fallback) { climbing.ledge = fallback; climbing.mesh = fallback.mesh; }
+      }
+    }
+    this.anchorLive = false;
+    this.anchorVisual.object3D.visible = false;
+    return true;
+  },
+
+  feedback: function () { return this.el.components['ability-test']; },
+
+  message: function (text) {
+    const fx = this.feedback();
+    if (!fx) return;
+    fx.lastHit = text;
+    fx.feedbackUntil = fx.clock + 2;
+  },
+
+  isGripping: function () {
+    const climbing = this.el.components['ledge-climb'];
+    return this.el.is('vr-mode') && climbing && climbing.hands.some(hand =>
+      hand.el === this.owner() && (hand.held || hand.grabbing));
+  },
+
+  blocksFist: function (hand) {
+    // A remote cutter leaves the hand free. Grip already tucks a held cutter away.
+    return this.active && hand === this.owner() && this.state === 'HELD' && !this.isGripping();
+  },
+
+  isOwnerClimbing: function () {
+    const climbing = this.el.components['ledge-climb'];
+    return !!climbing && climbing.hands.some(hand => hand.el === this.owner() && hand.grabbing);
+  },
+
+  beginGripThrow: function () {
+    this.gripThrowArmed = false;
+    const menu = this.el.components['pause-menu'];
+    if (!this.el.is('vr-mode') || document.hidden || (menu && menu.opened) ||
+        !this.active || this.state !== 'HELD' || !this.ignited || this.bladeAmount < 0.9 ||
+        this.cooldown > 0 || this.clock < this.handoffUntil || this.triggerHeld || this.isOwnerClimbing()) return;
+    const training = this.el.components['training-v4'];
+    if (!training || !training.hands.some(hand => hand.el === this.owner() && hand.connected)) return;
+    this.gripThrowArmed = true;
+    this.gripThrowAt = this.clock;
+    this.gripThrowStart.copy(this.handLocal);
+  },
+
+  endGripThrow: function () {
+    const armed = this.gripThrowArmed;
+    this.gripThrowArmed = false;
+    const menu = this.el.components['pause-menu'];
+    if (!armed || !this.el.is('vr-mode') || document.hidden || (menu && menu.opened) ||
+        !this.active || this.state !== 'HELD' || !this.ignited || this.bladeAmount < 0.9 ||
+        this.cooldown > 0 || this.clock < this.handoffUntil || this.triggerHeld || this.isOwnerClimbing()) return;
+    const latest = this.armSamples[this.armSamples.length - 1];
+    if (this.clock - this.gripThrowAt < 0.10 || this.armSamples.length < 3 || !latest ||
+        this.clock - latest.t > 0.05 || this.armVelocity.length() < 0.85 ||
+        this.handLocal.distanceTo(this.gripThrowStart) < 0.08) return;
+    const training = this.el.components['training-v4'], fx = this.feedback();
+    if (!training || !training.hands.some(hand => hand.el === this.owner() && hand.connected) ||
+        !fx || !fx.readAim(this.origin, this.aim, this.owningHand)) return;
+    this.root.position.copy(this.origin);
+    this.root.quaternion.setFromRotationMatrix(fx.aimMatrix).normalize();
+    this.historyReady = false;
+    this.swingAge = -1;
+    this.safetyReturn = false;
+    this.wallLatched = false;
+    this.lastTapAt = -100;
+    this.armed.dummy = this.armed.orb = true;
+    this.launchGesture();
+  },
+
+  reboundAfterHit: function () {
+    if (!this.el.is('vr-mode') || this.state !== 'OUTBOUND' || !this.canRebound) return;
+    this.canRebound = false;
+    this.rebounding = true;
+    this.returnAge = 0;
+    this.returnBlocked = false;
+    this.returnHits = {dummy: false, orb: false};
+    this.returnArmed = {dummy: this.armed.dummy, orb: this.armed.orb};
+    this.direction.negate();
+    this.launchSpeed = Math.min(this.launchSpeed * 0.45, 2.5);
+    this.flightAge = 0;
+    this.flightLimit = 0.25;
+    this.message('CUTTER REBOUND - trigger catches tether; double-tap retrieves');
+  },
+
+  toggleEquip: function () {
+    const fx = this.feedback();
+    if (!fx || document.hidden) return;
+    fx.unlockAudio();
+    if (this.state !== 'HELD') { this.message('Retrieve first: double-tap trigger (desktop G)'); return; }
+    if (fx.state !== 'READY' || fx.cooldown > 0 || this.cooldown > 0) {
+      this.message('Wait for the weapon to finish returning'); return;
+    }
+    if (this.ignited) fx.playEffect('extinguish');
+    this.active = !this.active;
+    this.ignited = false;
+    this.bladeAmount = 0;
+    this.historyReady = false;
+    this.clearTrigger();
+    this.stopHum();
+    this.message(this.active ? 'CUTTER EQUIPPED - flick R-stick DOWN to ignite' : 'CUTTER STOWED - knife ready');
+  },
+
+  toggleBlade: function () {
+    const fx = this.feedback();
+    if (!this.active || !fx || document.hidden) return;
+    fx.unlockAudio();
+    if (this.state !== 'HELD') { this.message('Recall cutter before changing blade power'); return; }
+    if (this.isGripping()) { this.message('Release holding-hand grip before using cutter'); return; }
+    this.ignited = !this.ignited;
+    fx.playEffect(this.ignited ? 'ignite' : 'extinguish');
+    this.historyReady = false;
+    this.armed.dummy = this.armed.orb = false;
+    this.message(this.ignited ? (this.el.is('vr-mode') ?
+      'BLADE ON - grip, swing, release grip to throw' : 'BLADE ON - swing, or E to throw') : 'BLADE OFF');
+  },
+
+  beginPress: function () {
+    if (!this.active) return;
+    this.triggerHeld = true;
+    this.pressAt = this.clock;
+    this.pressLaunched = false;
+    this.remoteAtPress = this.state !== 'HELD';
+  },
+
+  endPress: function () {
+    if (!this.triggerHeld) return;
+    const duration = this.clock - this.pressAt;
+    const menu = this.el.components['pause-menu'];
+    if (!(menu && menu.opened) && this.remoteAtPress && duration <= 0.16 && this.armVelocity.length() < 0.65) {
+      if (this.clock - this.lastTapAt <= 0.34) {
+        this.lastTapAt = -100;
+        this.recall('DOUBLE TAP - retrieve');
+        return;
+      }
+      this.lastTapAt = this.clock;
+    } else this.lastTapAt = -100;
+    const launchTap = this.state === 'OUTBOUND' && this.pressLaunched && duration < 0.18;
+    this.clearTrigger();
+    if (!launchTap && this.active && this.state !== 'HELD' && this.state !== 'RETURNING') this.hover(true);
+  },
+
+  sampleArm: function () {
+    if (!this.el.is('vr-mode')) { this.armVelocity.set(0, 0, 0); return; }
+    this.handLocal.copy(this.origin);
+    this.owner().object3D.parent.worldToLocal(this.handLocal);
+    this.armSamples.push({t: this.clock, p: this.handLocal.clone()});
+    while (this.armSamples.length > 2 && this.clock - this.armSamples[0].t > 0.11) this.armSamples.shift();
+    const first = this.armSamples[0];
+    const span = this.clock - first.t;
+    if (span > 0.015) this.armVelocity.copy(this.handLocal).sub(first.p).multiplyScalar(1 / span);
+  },
+
+  launchGesture: function () {
+    this.owner().object3D.parent.getWorldQuaternion(this.quaternion);
+    this.direction.copy(this.armVelocity).applyQuaternion(this.quaternion).normalize();
+    this.launchSpeed = Math.min(this.armVelocity.length() * 1.5, 14);
+    this.launchRemote(true);
+  },
+
+  launchAlongAim: function () {
+    if (!this.active || !this.ignited || this.state === 'HELD' || this.safetyReturn) return;
+    this.direction.copy(this.aim);
+    this.launchSpeed = 9;
+    this.launchRemote();
+  },
+
+  launchRemote: function (physical) {
+    this.clearTrigger();
+    this.state = 'OUTBOUND';
+    this.flightAge = 0;
+    this.flightLimit = physical === true ? 1.5 : 0.5;
+    this.canRebound = physical === true;
+    this.rebounding = false;
+    this.poseDirection.copy(this.forward).applyQuaternion(this.root.quaternion);
+    this.remoteOldBase.copy(this.root.position).addScaledVector(this.poseDirection, 0.15);
+    this.remoteOldTip.copy(this.root.position).addScaledVector(this.poseDirection, 1.05);
+    this.remoteHistory = true;
+    this.feedback().throwRequested = false;
+    this.feedback().playEffect('launch');
+    this.message(physical === true ? 'GRIP THROW - trigger grabs tether; release parks' :
+      'GESTURE LAUNCH - hold trigger to catch the tether again');
+  },
+
+  hover: function (audible) {
+    if (this.state === 'HELD') return;
+    this.state = 'HOVER';
+    this.guiding = false;
+    this.gestureReady = false;
+    this.velocity.set(0, 0, 0);
+    if (audible) this.feedback().playEffect('hover');
+    this.message('BLADE PARKED - trigger to manipulate; double-tap trigger retrieves');
+  },
+
+  clearTrigger: function () {
+    this.gripThrowArmed = false;
+    this.handoffCandidate = null;
+    this.triggerHeld = false;
+    this.guiding = false;
+    this.gestureReady = false;
+    this.pressLaunched = false;
+  },
+
+  primaryAction: function (origin, direction) {
+    if (this.anchorLive) {
+      if (!this.removeAnchor(false)) return;
+      this.state = 'HOVER'; this.remoteHistory = false;
+    }
+    if (!this.active || (this.clock < this.primaryBlockedUntil && this.state === 'HELD')) return;
+    if (this.state !== 'HELD') {
+      if (this.safetyReturn) { this.clearTrigger(); return; }
+      this.state = 'CONTROLLED';
+      this.rebounding = false;
+      this.gestureReady = false;
+      this.remoteHistory = false;
+      this.message('TETHER GRABBED - move hand + rotate wrist; release parks blade');
+      return;
+    }
+    if (this.el.is('vr-mode')) {
+      this.clearTrigger();
+      this.message('Grip, swing, release grip to throw; trigger is for tether');
+      return;
+    }
+    if (this.isGripping()) { this.clearTrigger(); this.message('Release holding-hand grip before throwing'); return; }
+    if (!this.ignited || this.bladeAmount < 0.9) {
+      this.clearTrigger(); this.message('Ignite cutter first: R-stick DOWN / desktop V'); return;
+    }
+    if (this.cooldown > 0) { this.clearTrigger(); return; }
+    this.root.position.copy(origin);
+    if (!this.el.is('vr-mode')) {
+      this.view.object3D.getWorldQuaternion(this.quaternion);
+      this.offset.set(0.22, -0.20, -0.18).applyQuaternion(this.quaternion);
+      this.root.position.add(this.offset);
+    }
+    this.swingAge = -1;
+    this.direction.copy(direction).normalize();
+    if (this.el.is('vr-mode')) this.root.quaternion.setFromRotationMatrix(this.feedback().aimMatrix).normalize();
+    else this.root.quaternion.copy(this.quaternion);
+    this.state = 'OUTBOUND';
+    this.launchSpeed = 8;
+    this.flightLimit = 0.5;
+    this.canRebound = false;
+    this.rebounding = false;
+    this.flightAge = 0;
+    this.historyReady = false;
+    this.pressLaunched = true;
+    this.remoteOldBase.copy(this.root.position).addScaledVector(this.direction, 0.15);
+    this.remoteOldTip.copy(this.root.position).addScaledVector(this.direction, 1.05);
+    this.remoteHistory = true;
+    this.safetyReturn = false;
+    this.wallLatched = false;
+    this.armed.dummy = this.armed.orb = true;
+    this.feedback().playEffect('launch');
+    this.message('CUTTER RELEASED - hold trigger to manipulate; release to hover');
+  },
+
+  recall: function (text, safety) {
+    if (this.anchorLive && !this.removeAnchor(false)) return;
+    if (!this.active || this.state === 'HELD') return;
+    const starting = this.state !== 'RETURNING';
+    this.primaryBlockedUntil = this.clock + 0.09;
+    this.feedback().throwRequested = false;
+    this.state = 'RETURNING';
+    this.safetyReturn = safety === true || (this.safetyReturn && !starting);
+    this.returnAge = 0;
+    this.remoteHistory = false;
+    if (starting) {
+      this.returnHits = {dummy: false, orb: false};
+      this.returnBlocked = false;
+      this.poseDirection.copy(this.forward).applyQuaternion(this.root.quaternion);
+      this.remoteOldBase.copy(this.root.position).addScaledVector(this.poseDirection, 0.15);
+      this.remoteOldTip.copy(this.root.position).addScaledVector(this.poseDirection, 1.05);
+      const touching = {dummy: false, orb: false};
+      const training = this.el.components['training-v4'];
+      this.testBladeSegment(this.remoteOldBase, this.remoteOldTip, training, touching);
+      this.returnArmed = {dummy: !touching.dummy, orb: !touching.orb};
+      this.remoteHistory = true;
+    }
+    this.clearTrigger();
+    if (starting) this.feedback().playEffect('retrieve');
+    if (text) this.message(text);
+  },
+
+  cancel: function () {
+    this.removeAnchor(true);
+    this.state = 'HELD';
+    this.rebounding = false;
+    this.canRebound = false;
+    this.flightLimit = 0.5;
+    this.ignited = false;
+    this.bladeAmount = 0;
+    this.historyReady = false;
+    this.flightAge = 0;
+    this.cooldown = 0.3;
+    this.swingAge = -1;
+    this.returnAge = 0;
+    this.safetyReturn = false;
+    this.remoteHistory = false;
+    this.wallLatched = false;
+    this.controlKeys.clear();
+    this.armSamples.length = 0;
+    this.armVelocity.set(0, 0, 0);
+    this.lastTapAt = -100;
+    this.clearTrigger();
+    this.root.visible = false;
+    this.beam.visible = false;
+    this.stopHum();
+  },
+
+  stopHum: function () {
+    if (!this.hum) return;
+    try { this.hum.oscillator.stop(); } catch (error) {}
+    this.hum.oscillator.disconnect();
+    this.hum.gain.disconnect();
+    this.hum = null;
+  },
+
+  updateHum: function (audible) {
+    const fx = this.feedback();
+    const ctx = fx && fx.audioContext;
+    if (!audible || !ctx || ctx.state !== 'running' || fx.muted || fx.soundVolume <= 0) {
+      this.stopHum(); return;
+    }
+    if (!this.hum) {
+      try {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = 'triangle';
+        oscillator.frequency.value = 105;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 0.08);
+        oscillator.connect(gain);
+        gain.connect(fx.masterGain);
+        oscillator.start();
+        this.hum = {oscillator: oscillator, gain: gain};
+      } catch (error) { this.hum = null; }
+    }
+    if (this.hum) {
+      const speed = Math.min(15, this.velocity.length());
+      const remote = this.state !== 'HELD';
+      this.hum.oscillator.frequency.setTargetAtTime(
+        (this.state === 'RETURNING' ? 165 : remote ? 125 : 105) + speed * 9,
+        ctx.currentTime, 0.045);
+      this.hum.gain.gain.setTargetAtTime(remote ? 0.075 + speed * 0.006 : 0.045,
+        ctx.currentTime, 0.04);
+    }
+  },
+
+  desktopSwing: function () {
+    if (!this.active || this.state !== 'HELD' || !this.ignited || this.clock < this.nextSwing) return;
+    this.swingAge = 0;
+    this.nextSwing = this.clock + 0.45;
+  },
+
+  captureControl: function () {
+    const parent = this.owner().object3D.parent;
+    this.controlStart.copy(this.origin);
+    parent.worldToLocal(this.controlStart);
+    this.controlBlade.copy(this.root.position);
+    parent.worldToLocal(this.controlBlade);
+    parent.getWorldQuaternion(this.parentQuaternion);
+    this.inverseQuaternion.copy(this.parentQuaternion).invert();
+    this.handLocalQuaternion.copy(this.inverseQuaternion).multiply(this.handWorldQuaternion);
+    this.handStartQuaternion.copy(this.handLocalQuaternion).invert();
+    this.bladeStartQuaternion.copy(this.inverseQuaternion).multiply(this.root.quaternion);
+    this.controlForward.copy(this.aim).applyQuaternion(this.inverseQuaternion).normalize();
+    this.remoteDepth = THREE.MathUtils.clamp(this.root.position.distanceTo(this.origin), 0.5, 12);
+    this.depthStart = this.remoteDepth;
+    this.remoteRoll = 0;
+    this.controlRelative.copy(this.root.position).sub(this.origin);
+    this.inverseQuaternion.copy(this.handWorldQuaternion).invert();
+    this.controlRelative.applyQuaternion(this.inverseQuaternion);
+    this.gestureReady = true;
+  },
+
+  updateGuidance: function (dt, training) {
+    this.guiding = this.triggerHeld && !this.isGripping();
+    if (!this.guiding) { this.hover(false); return; }
+    if (training.stamina <= 0) { this.recall('STAMINA EMPTY - free safety retrieve', true); return; }
+    const staminaBefore = training.stamina;
+    training.stamina = Math.max(0, training.stamina - 2 * dt);
+    this.guidedSeconds += dt;
+    this.staminaSpent += staminaBefore - training.stamina;
+    if (training.stamina <= 0) { this.recall('STAMINA EMPTY - free safety retrieve', true); return; }
+    if (!this.gestureReady) this.captureControl();
+    const parent = this.owner().object3D.parent;
+    parent.getWorldQuaternion(this.parentQuaternion);
+    this.inverseQuaternion.copy(this.parentQuaternion).invert();
+    this.handLocalQuaternion.copy(this.inverseQuaternion).multiply(this.handWorldQuaternion);
+    if (this.el.is('vr-mode')) {
+      this.handLocal.copy(this.origin);
+      parent.worldToLocal(this.handLocal);
+      this.gestureDelta.copy(this.handLocal).sub(this.controlStart);
+      const depth = this.gestureDelta.dot(this.controlForward);
+      this.controlDesired.copy(this.controlBlade).addScaledVector(this.gestureDelta, 3.5)
+        .addScaledVector(this.controlForward, depth * 2.5);
+      parent.localToWorld(this.controlDesired);
+    } else {
+      const touch = this.el.components['touch-controls'];
+      const depthAxis = Number(this.controlKeys.has('KeyI')) - Number(this.controlKeys.has('KeyK')) +
+        (touch ? touch.depthAxis : 0);
+      const rollAxis = Number(this.controlKeys.has('KeyL')) - Number(this.controlKeys.has('KeyJ')) +
+        (touch ? touch.rollAxis : 0);
+      this.remoteDepth = THREE.MathUtils.clamp(this.remoteDepth + depthAxis * 3 * dt, 0.5, 12);
+      this.remoteRoll += rollAxis * 1.8 * dt;
+      this.controlDesired.copy(this.controlRelative);
+      this.controlDesired.z -= this.remoteDepth - this.depthStart;
+      this.controlDesired.applyQuaternion(this.handWorldQuaternion).add(this.origin);
+    }
+    // Independent orientation: changing blade pitch/yaw/roll never points it along velocity.
+    this.desiredQuaternion.copy(this.handLocalQuaternion).multiply(this.handStartQuaternion)
+      .multiply(this.bladeStartQuaternion).premultiply(this.parentQuaternion);
+    this.rollQuaternion.setFromAxisAngle(this.forward, this.remoteRoll);
+    this.desiredQuaternion.multiply(this.rollQuaternion);
+    this.offset.copy(this.controlDesired).sub(this.origin).clampLength(0, 12);
+    this.controlDesired.copy(this.origin).add(this.offset);
+    this.controlDesired.y = Math.max(0.08, this.controlDesired.y);
+    this.proposedPosition.copy(this.root.position).lerp(this.controlDesired, 1 - Math.exp(-16 * dt));
+    this.offset.copy(this.proposedPosition).sub(this.root.position).clampLength(0, 12 * dt);
+    this.proposedPosition.copy(this.root.position).add(this.offset);
+    this.poseQuaternion.copy(this.root.quaternion).rotateTowards(this.desiredQuaternion, 9 * dt);
+    this.solveRemotePose(this.proposedPosition, this.poseQuaternion, training);
+  },
+
+  poseBlocked: function (position, orientation, training) {
+    if (position.y < 0.045) return true;
+    this.poseDirection.copy(this.forward).applyQuaternion(orientation);
+    this.point.copy(position).addScaledVector(this.poseDirection, 1.07);
+    if (this.point.y < 0.045) return true;
+    return Number.isFinite(this.feedback().blockingDistance(position, this.poseDirection, 1.07, training));
+  },
+
+  solveRemotePose: function (position, orientation, training) {
+    this.safePosition.copy(this.root.position);
+    this.safeQuaternion.copy(this.root.quaternion);
+    const travel = this.safePosition.distanceTo(position);
+    const angle = this.safeQuaternion.angleTo(orientation);
+    const steps = Math.min(40, Math.max(1, Math.ceil((travel + angle * 1.07) / 0.035)));
+    let blocked = false;
+    for (let index = 1; index <= steps; index++) {
+      const fraction = index / steps;
+      this.posePosition.copy(this.safePosition).lerp(position, fraction);
+      this.quaternion.copy(this.safeQuaternion).slerp(orientation, fraction);
+      if (this.poseBlocked(this.posePosition, this.quaternion, training)) { blocked = true; break; }
+      this.root.position.copy(this.posePosition);
+      this.root.quaternion.copy(this.quaternion);
+    }
+    // If a requested rotation is blocked, allow translation away from the wall.
+    if (blocked && travel > 0.001 && angle > 0.001) {
+      for (let index = 1; index <= steps; index++) {
+        this.posePosition.copy(this.safePosition).lerp(position, index / steps);
+        if (this.poseBlocked(this.posePosition, this.safeQuaternion, training)) break;
+        this.root.position.copy(this.posePosition);
+        this.root.quaternion.copy(this.safeQuaternion);
+      }
+    }
+    if (blocked && !this.wallLatched) {
+      this.poseDirection.copy(this.forward).applyQuaternion(this.root.quaternion);
+      this.point.copy(this.root.position).addScaledVector(this.poseDirection, 0.9);
+      this.feedback().hitFeedback('wall', this.point);
+      this.message('SURFACE CONTACT - move or rotate away; retrieve combo still works');
+    }
+    this.wallLatched = blocked;
+    return !blocked;
+  },
+
+  testBladeSegment: function (base, tip, training, hits) {
+    const fx = this.feedback();
+    this.sweepDirection.copy(tip).sub(base);
+    const length = this.sweepDirection.length();
+    if (length < 0.0001) return;
+    this.sweepDirection.multiplyScalar(1 / length);
+    let wall = fx.blockingDistance(base, this.sweepDirection, length, training);
+    let dummy = Infinity, orb = Infinity;
+    if (fx.hp > 0) {
+      this.targetBox.copy(fx.targetBox).expandByScalar(0.06);
+      dummy = this.targetBox.containsPoint(base) ? 0 :
+        fx.segmentDistance(base, this.sweepDirection, length, this.targetBox);
+    }
+    if (training.hp > 0 && !training.resetAt) {
+      training.target.object3D.getWorldPosition(this.orbSphere.center);
+      orb = fx.segmentSphereDistance(base, this.sweepDirection, length, this.orbSphere);
+    }
+    if (dummy < wall && dummy <= orb) {
+      hits.dummy = true;
+      this.contact.dummy.copy(base).addScaledVector(this.sweepDirection, dummy);
+    } else if (orb < wall) {
+      hits.orb = true;
+      this.contact.orb.copy(base).addScaledVector(this.sweepDirection, orb);
+    }
+  },
+
+  damageTarget: function (kind, amount, training) {
+    const fx = this.feedback();
+    if (kind === 'dummy') fx.damageDummy(amount, 'PLASMA', this.contact.dummy);
+    else {
+      training.damage(amount, 'plasma');
+      this.message('ORB PLASMA HIT -' + amount);
+    }
+  },
+
+  stepMelee: function (dt, training) {
+    const parent = this.owner().object3D.parent;
+    this.base.copy(this.root.position).addScaledVector(this.aim, 0.15);
+    this.tip.copy(this.root.position).addScaledVector(this.aim, 1.05);
+    this.localBase.copy(this.base);
+    this.localTip.copy(this.tip);
+    // Both controller and desktop camera are direct children of the same rig.
+    parent.worldToLocal(this.localBase);
+    parent.worldToLocal(this.localTip);
+    if (!this.historyReady) {
+      this.oldBase.copy(this.localBase);
+      this.oldTip.copy(this.localTip);
+      this.historyReady = true;
+      this.armed.dummy = this.armed.orb = false;
+      return;
+    }
+    const travel = this.localTip.distanceTo(this.oldTip);
+    const speed = travel / dt;
+    const hits = {dummy: false, orb: false};
+    const steps = Math.min(16, Math.max(1, Math.ceil(travel / 0.04)));
+    for (let index = 0; index <= steps; index++) {
+      const fraction = index / steps;
+      this.sweepStart.copy(this.oldBase).lerp(this.localBase, fraction);
+      this.sweepTip.copy(this.oldTip).lerp(this.localTip, fraction);
+      parent.localToWorld(this.sweepStart);
+      parent.localToWorld(this.sweepTip);
+      this.testBladeSegment(this.sweepStart, this.sweepTip, training, hits);
+    }
+    ['dummy', 'orb'].forEach(kind => {
+      if (!hits[kind]) this.armed[kind] = true;
+      if (hits[kind] && this.armed[kind] && speed >= 0.45 && this.clock >= this.nextHit[kind]) {
+        this.damageTarget(kind, 30, training);
+        this.armed[kind] = false;
+        this.nextHit[kind] = this.clock + 0.4;
+      }
+    });
+    this.oldBase.copy(this.localBase);
+    this.oldTip.copy(this.localTip);
+  },
+
+  stepRemoteDamage: function (dt, training) {
+    const returning = this.state === 'RETURNING' || this.rebounding;
+    if (returning && (this.safetyReturn || this.returnAge > 6 || this.returnBlocked)) return;
+    if (!this.ignited || this.bladeAmount < 0.9) { this.remoteHistory = false; return; }
+    this.poseDirection.copy(this.forward).applyQuaternion(this.root.quaternion);
+    this.remoteBase.copy(this.root.position).addScaledVector(this.poseDirection, 0.15);
+    this.remoteTip.copy(this.root.position).addScaledVector(this.poseDirection, 1.05);
+    if (!this.remoteHistory) {
+      this.remoteOldBase.copy(this.remoteBase);
+      this.remoteOldTip.copy(this.remoteTip);
+      this.remoteHistory = true;
+      return;
+    }
+    // Recall still passes scenery for recovery, but cannot damage through that scenery.
+    if (returning) {
+      const fx = this.feedback();
+      for (const pair of [[this.remoteOldBase, this.remoteBase], [this.remoteOldTip, this.remoteTip]]) {
+        this.sweepDirection.copy(pair[1]).sub(pair[0]);
+        const distance = this.sweepDirection.length();
+        if (distance > 0.0001) {
+          this.sweepDirection.multiplyScalar(1 / distance);
+          if (Number.isFinite(fx.blockingDistance(pair[0], this.sweepDirection, distance, training))) {
+            this.returnBlocked = true; return;
+          }
+        }
+      }
+    }
+    const travel = Math.max(this.remoteTip.distanceTo(this.remoteOldTip), this.remoteBase.distanceTo(this.remoteOldBase));
+    const hits = {dummy: false, orb: false};
+    const steps = Math.min(32, Math.max(1, Math.ceil(travel / 0.035)));
+    for (let index = 0; index <= steps; index++) {
+      this.sweepStart.copy(this.remoteOldBase).lerp(this.remoteBase, index / steps);
+      this.sweepTip.copy(this.remoteOldTip).lerp(this.remoteTip, index / steps);
+      this.testBladeSegment(this.sweepStart, this.sweepTip, training, hits);
+    }
+    let rebound = false;
+    ['dummy', 'orb'].forEach(kind => {
+      if (returning) {
+        if (!hits[kind]) this.returnArmed[kind] = true;
+        if (hits[kind] && this.returnArmed[kind] && !this.returnHits[kind] && travel / dt >= 0.45) {
+          this.damageTarget(kind, 12, training);
+          this.returnHits[kind] = true;
+          this.returnArmed[kind] = false;
+          this.armed[kind] = false;
+          this.nextHit[kind] = this.clock + 0.4;
+          this.message('RETURN STRIKE -12');
+        }
+      } else {
+        if (!hits[kind]) this.armed[kind] = true;
+        if (hits[kind] && this.armed[kind] && travel / dt >= 0.45 && this.clock >= this.nextHit[kind]) {
+          this.damageTarget(kind, 25, training);
+          if (this.state === 'OUTBOUND' && this.canRebound && this.el.is('vr-mode')) rebound = true;
+          this.armed[kind] = false;
+          this.nextHit[kind] = this.clock + 0.4;
+        }
+      }
+    });
+    if (rebound) this.reboundAfterHit();
+    this.remoteOldBase.copy(this.remoteBase);
+    this.remoteOldTip.copy(this.remoteTip);
+  },
+
+  stepFlight: function (dt, training) {
+    const fx = this.feedback();
+    this.flightAge += dt;
+    this.start.copy(this.root.position);
+    if (this.state === 'RETURNING') {
+      this.returnAge += dt;
+      this.home.copy(this.origin);
+      this.offset.copy(this.home).sub(this.root.position);
+      const distance = this.offset.length();
+      // Re-seed after pause/tracking resets before moving, so no return segment is skipped.
+      if (!this.remoteHistory && !this.safetyReturn && this.returnAge <= 6) this.stepRemoteDamage(dt, training);
+      if (distance <= Math.max(0.16, 15 * dt) || this.returnAge > 6) {
+        this.root.position.copy(this.home);
+        if (this.returnAge <= 6 && distance > 0.02) this.stepRemoteDamage(dt, training);
+        this.state = 'HELD';
+        this.rebounding = false;
+        this.canRebound = false;
+        this.flightLimit = 0.5;
+        this.safetyReturn = false;
+        this.cooldown = 0.4;
+        this.clearTrigger();
+        this.historyReady = false;
+        this.remoteHistory = false;
+        this.velocity.set(0, 0, 0);
+        fx.hitFeedback('catch', this.home);
+        this.message('CUTTER CAUGHT');
+      } else {
+        this.offset.multiplyScalar(1 / distance);
+        this.root.position.addScaledVector(this.offset, 15 * dt);
+        this.root.quaternion.rotateTowards(this.handWorldQuaternion, 8 * dt);
+        this.velocity.copy(this.offset).multiplyScalar(15);
+        this.stepRemoteDamage(dt, training);
+      }
+      return;
+    }
+    if ((this.state === 'OUTBOUND' || this.state === 'HOVER') && this.triggerHeld &&
+        this.clock - this.pressAt >= 0.18 && !this.isGripping()) {
+      this.state = 'CONTROLLED';
+      this.rebounding = false;
+      this.gestureReady = false;
+    }
+    if (this.state === 'CONTROLLED') this.updateGuidance(dt, training);
+    else if (this.state === 'OUTBOUND') {
+      this.proposedPosition.copy(this.root.position).addScaledVector(this.direction, this.launchSpeed * dt);
+      this.offset.copy(this.proposedPosition).sub(this.origin);
+      const rangeLimit = this.offset.length() >= 12;
+      if (rangeLimit) {
+        this.offset.clampLength(0, 12);
+        this.proposedPosition.copy(this.origin).add(this.offset);
+      }
+      const clear = this.solveRemotePose(this.proposedPosition, this.root.quaternion, training);
+      if (!clear || rangeLimit || this.flightAge >= this.flightLimit) this.hover(false);
+    }
+    // A parked blade stays in world space until it reaches the 12m leash boundary.
+    if (this.state === 'HOVER') {
+      this.offset.copy(this.root.position).sub(this.origin);
+      if (this.offset.length() > 12) {
+        this.offset.clampLength(0, 12);
+        this.proposedPosition.copy(this.origin).add(this.offset);
+        this.solveRemotePose(this.proposedPosition, this.root.quaternion, training);
+      }
+    }
+    if (this.state !== 'RETURNING' && this.state !== 'HELD') {
+      this.velocity.copy(this.root.position).sub(this.start).multiplyScalar(1 / dt);
+      this.stepRemoteDamage(dt, training);
+    }
+  },
+
+  tick: function (time, delta) {
+    if (this.el.components['pause-menu'] && this.el.components['pause-menu'].opened) return;
+    if (!delta) return;
+    if (document.hidden || delta > 100) { this.cancel(); return; }
+    const dt = delta / 1000;
+    this.clock += dt;
+    this.cooldown = Math.max(0, this.cooldown - dt);
+    const fx = this.feedback();
+    const training = this.el.components['training-v4'];
+    if (!fx || !training || !this.active) {
+      this.root.visible = false;
+      this.stopHum();
+      return;
+    }
+    if (this.anchorLive) {
+      this.root.visible = true; this.beam.visible = false;
+      this.gripThrowArmed = false; this.stopHum(); return;
+    }
+    if (!fx.readAim(this.origin, this.aim, this.owningHand)) { this.cancel(); return; }
+    if (this.tryHandoff() && !fx.readAim(this.origin, this.aim, this.owningHand)) { this.cancel(); return; }
+    const vr = this.el.is('vr-mode');
+    this.sampleArm();
+    if (vr && this.isOwnerClimbing()) this.gripThrowArmed = false;
+    if (vr) this.handWorldQuaternion.setFromRotationMatrix(fx.aimMatrix).normalize();
+    else this.view.object3D.getWorldQuaternion(this.handWorldQuaternion);
+    if (!vr) {
+      this.view.object3D.getWorldQuaternion(this.quaternion);
+      this.offset.set(0.22, -0.20, -0.18).applyQuaternion(this.quaternion);
+      this.origin.add(this.offset);
+      if (this.swingAge >= 0 && this.state === 'HELD') {
+        this.swingAge += dt;
+        if (this.swingAge > 0.28) this.swingAge = -1;
+        else {
+          const swing = 0.65 - (this.swingAge / 0.28) * 1.3;
+          this.aim.applyAxisAngle(this.up, swing).normalize();
+          this.quaternion.setFromAxisAngle(this.up, swing);
+          this.handWorldQuaternion.premultiply(this.quaternion);
+        }
+      }
+    }
+    const gripping = this.isGripping();
+    this.root.visible = this.state !== 'HELD' || !gripping;
+    this.bladeAmount = THREE.MathUtils.clamp(this.bladeAmount + (this.ignited ? 1 : -1) * dt * 7, 0, 1);
+    this.beam.scale.z = Math.max(0.001, this.bladeAmount);
+    this.beam.visible = this.bladeAmount > 0.01;
+    if (this.state === 'HELD') {
+      this.root.position.copy(this.origin);
+      this.root.quaternion.copy(this.handWorldQuaternion);
+      this.velocity.set(0, 0, 0);
+      if (this.ignited && this.bladeAmount > 0.9 && !gripping && this.cooldown <= 0)
+        this.stepMelee(dt, training);
+      else this.historyReady = false;
+    } else this.stepFlight(dt, training);
+    this.updateHum(this.active && this.ignited && this.root.visible);
+  }
+});
+</script>
+
+
+<script>
+AFRAME.registerComponent('touch-controls', {
+  init: function () {
+    this.moveX = this.moveY = this.depthAxis = this.rollAxis = 0;
+    this.moving = this.sprint = this.locked = false;
+    this.releases = new Map();
+    this.primaryPointer = null;
+    this.view = document.querySelector('#view');
+    this.rayOrigin = new THREE.Vector3();
+    this.rayDirection = new THREE.Vector3();
+    this.throwTarget = new THREE.Vector3();
+    const container = document.createElement('div');
+    container.id = 'mobile-controls';
+    container.innerHTML = '<div id="touch-look" aria-label="Drag to look"></div>' +
+      '<div id="touch-move" aria-label="Movement joystick"><span>MOVE</span><i></i></div>' +
+      '<div id="touch-actions"></div><div id="touch-hotbar" role="group" aria-label="Weapon selection"></div>' +
+      '<div id="touch-status" aria-live="polite"></div>';
+    document.body.appendChild(container);
+    this.container = container;
+    this.knob = container.querySelector('#touch-move i');
+    this.status = container.querySelector('#touch-status');
+    const prevent = event => { event.preventDefault(); event.stopPropagation(); };
+    const bind = (element, start) => {
+      element.addEventListener('pointerdown', event => {
+        const pause = this.el.components['pause-menu'];
+        if (this.el.is('vr-mode') || (pause && pause.opened)) return;
+        prevent(event);
+        try { element.setPointerCapture(event.pointerId); } catch (error) {}
+        const fx = this.el.components['ability-test'];
+        if (fx) fx.unlockAudio();
+        const finish = start(event) || (() => {});
+        this.releases.set(event.pointerId, finish);
+      });
+      ['pointerup','pointercancel','lostpointercapture'].forEach(name => element.addEventListener(name, event => {
+        prevent(event);
+        const finish = this.releases.get(event.pointerId);
+        this.releases.delete(event.pointerId);
+        if (finish) finish(name !== 'pointerup');
+      }));
+    };
+    const move = container.querySelector('#touch-move');
+    let movePointer = null;
+    const updateMove = event => {
+      const rect = move.getBoundingClientRect(), radius = rect.width * 0.36;
+      let x = event.clientX - rect.left - rect.width / 2;
+      let y = event.clientY - rect.top - rect.height / 2;
+      const length = Math.hypot(x,y);
+      if (length > radius) { x *= radius/length; y *= radius/length; }
+      this.moveX = x/radius; this.moveY = y/radius;
+      this.knob.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    };
+    bind(move,event => {
+      if (movePointer !== null) return;
+      movePointer = event.pointerId; this.moving = true; updateMove(event);
+      return () => { movePointer = null; this.moving = false; this.moveX = this.moveY = 0; this.knob.style.transform = ''; };
+    });
+    move.addEventListener('pointermove',event => {
+      if (event.pointerId === movePointer) { prevent(event); updateMove(event); }
+    });
+    const look = container.querySelector('#touch-look');
+    let lookPointer = null, lookX = 0, lookY = 0;
+    bind(look,event => {
+      if (lookPointer !== null) return;
+      lookPointer = event.pointerId; lookX = event.clientX; lookY = event.clientY;
+      return () => { lookPointer = null; };
+    });
+    look.addEventListener('pointermove',event => {
+      if (event.pointerId !== lookPointer) return;
+      prevent(event); this.dragLook(event.clientX-lookX,event.clientY-lookY);
+      lookX = event.clientX; lookY = event.clientY;
+    });
+    const add = (label,id,action,parent) => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.textContent = label; button.dataset.action = id;
+      bind(button,action); (parent || container.querySelector('#touch-actions')).appendChild(button);
+      return button;
+    };
+    this.primaryButton = add('THROW','primary',event => {
+      if (this.primaryPointer !== null) return;
+      const id = event.pointerId;
+      this.primaryPointer = id; this.aimX = event.clientX; this.aimY = event.clientY;
+      this.primaryButton.classList.add('aiming');
+      return cancelled => {
+        if (this.primaryPointer !== id) return;
+        this.primaryPointer = null; this.primaryButton.classList.remove('aiming');
+        if (!cancelled) this.primaryAction();
+      };
+    });
+    this.primaryButton.setAttribute('aria-label','Drag to aim, release for primary weapon action');
+    this.primaryButton.addEventListener('pointermove',event => {
+      if (event.pointerId !== this.primaryPointer) return;
+      prevent(event); this.dragLook(event.clientX-this.aimX,event.clientY-this.aimY);
+      this.aimX = event.clientX; this.aimY = event.clientY;
+    });
+    this.secondaryButton = add('PUNCH','secondary',() => this.secondaryAction());
+    add('JUMP','jump',() => this.el.components['training-v4'].jump());
+    this.sprintButton = add('SPRINT','sprint',() => { this.sprint = !this.sprint; });
+    const bar = container.querySelector('#touch-hotbar');
+    this.knifeSlot = add('KNIFE','knife',() => this.selectItem('knife'),bar);
+    this.cutterSlot = add('CUTTER','cutter',() => this.selectItem('cutter'),bar);
+    container.addEventListener('contextmenu',prevent);
+    container.addEventListener('keydown',event => event.stopPropagation());
+    const clear = () => this.clear();
+    window.addEventListener('blur',clear);
+    window.addEventListener('resize',clear);
+    window.addEventListener('orientationchange',clear);
+    document.addEventListener('visibilitychange',clear);
+    this.el.addEventListener('enter-vr',clear);
+    this.view.setAttribute('look-controls','magicWindowTrackingEnabled',false);
+    this.view.setAttribute('look-controls','touchEnabled',false);
+    this.tick();
+  },
+
+  dragLook: function (dx,dy) {
+    if (this.el.is('vr-mode')) return;
+    const pause = this.el.components['pause-menu'];
+    if (pause && pause.opened) return;
+    const controls = this.view.components['look-controls'];
+    if (!controls || !controls.yawObject || !controls.pitchObject) return;
+    controls.yawObject.rotation.y -= dx * 0.004;
+    controls.pitchObject.rotation.x = THREE.MathUtils.clamp(
+      controls.pitchObject.rotation.x - dy * 0.004, -85*Math.PI/180,85*Math.PI/180);
+  },
+
+  canSelect: function () {
+    const fx = this.el.components['ability-test'], cutter = this.el.components['plasma-cutter'];
+    return !!fx && !!cutter && fx.state === 'READY' && fx.cooldown <= 0 && cutter.state === 'HELD' && cutter.cooldown <= 0;
+  },
+
+  selectItem: function (item) {
+    const cutter = this.el.components['plasma-cutter'];
+    if (!cutter || !this.canSelect()) return;
+    this.primaryPointer = null; this.primaryButton.classList.remove('aiming');
+    const wantCutter = item === 'cutter';
+    if (cutter.active !== wantCutter) cutter.toggleEquip();
+    // Mobile selects a ready-to-use blade instead of requiring another power button.
+    if (wantCutter && cutter.active && !cutter.ignited) cutter.toggleBlade();
+    this.tick();
+  },
+
+  primaryAction: function () {
+    const pause = this.el.components['pause-menu'];
+    if (this.el.is('vr-mode') || (pause && pause.opened)) return;
+    const fx = this.el.components['ability-test'], cutter = this.el.components['plasma-cutter'];
+    if (!fx || !cutter) return;
+    fx.unlockAudio();
+    if (!cutter.active) { fx.throwKnife(); return; }
+    if (cutter.state === 'RETURNING' || cutter.cooldown > 0) return;
+    if (!cutter.ignited) { cutter.toggleBlade(); return; }
+    if (cutter.bladeAmount < 0.9) return;
+    cutter.clearTrigger(); cutter.lastTapAt = -100;
+    if (cutter.state === 'HELD') {
+      // Existing throw, with a phone-only speed: about 5m before the normal hover.
+      fx.throwKnife();
+      if (cutter.state === 'OUTBOUND') cutter.launchSpeed = 10;
+    } else {
+      if (cutter.safetyReturn || !fx.readAim(this.rayOrigin,this.rayDirection)) return;
+      this.throwTarget.copy(this.rayOrigin).addScaledVector(this.rayDirection,10);
+      cutter.direction.copy(this.throwTarget).sub(cutter.root.position);
+      if (cutter.direction.lengthSq() < 0.0001) return;
+      cutter.direction.normalize(); cutter.launchSpeed = 10; cutter.launchRemote();
+    }
+  },
+
+  secondaryAction: function () {
+    const pause = this.el.components['pause-menu'];
+    if (this.el.is('vr-mode') || (pause && pause.opened)) return;
+    const cutter = this.el.components['plasma-cutter'], training = this.el.components['training-v4'];
+    if (!cutter || !training) return;
+    if (cutter.active && cutter.state !== 'HELD') {
+      if (cutter.state !== 'RETURNING') cutter.recall('TOUCH RETRIEVE');
+    } else training.desktopPunch();
+  },
+
+  clear: function () {
+    this.releases.forEach(finish => finish(true)); this.releases.clear();
+    this.primaryPointer = null;
+    this.moveX = this.moveY = this.depthAxis = this.rollAxis = 0;
+    this.moving = this.sprint = this.locked = false;
+    if (this.knob) this.knob.style.transform = '';
+    if (this.primaryButton) this.primaryButton.classList.remove('aiming');
+    const cutter = this.el.components['plasma-cutter'];
+    if (cutter) { cutter.clearTrigger(); if (cutter.state === 'CONTROLLED') cutter.hover(false); }
+  },
+
+  tick: function () {
+    const cutter = this.el.components['plasma-cutter'], fx = this.el.components['ability-test'];
+    const training = this.el.components['training-v4'];
+    if (!cutter || !fx || !training) return;
+    if (training.exhausted) this.sprint = false;
+    const selected = cutter.active, away = selected && cutter.state !== 'HELD';
+    const returning = selected && cutter.state === 'RETURNING';
+    const warming = selected && cutter.ignited && cutter.bladeAmount < 0.9;
+    const recovering = selected ? cutter.cooldown > 0 : fx.state !== 'READY' || fx.cooldown > 0;
+    const primary = this.primaryPointer !== null ? 'RELEASE' : returning || recovering ? 'WAIT' :
+      selected && !cutter.ignited ? 'IGNITE' : warming ? 'READYING' : away ? 'LAUNCH' : 'THROW';
+    const secondary = away ? (returning ? 'RETURNING' : 'RETRIEVE') : selected ? 'SWING' : 'PUNCH';
+    if (this.primaryButton.textContent !== primary) this.primaryButton.textContent = primary;
+    if (this.secondaryButton.textContent !== secondary) this.secondaryButton.textContent = secondary;
+    this.primaryButton.disabled = returning || warming || (selected ? cutter.cooldown > 0 : fx.state !== 'READY' || fx.cooldown > 0);
+    this.secondaryButton.disabled = returning || (selected && !away && (!cutter.ignited || warming || cutter.cooldown > 0));
+    this.knifeSlot.disabled = this.cutterSlot.disabled = !this.canSelect();
+    this.knifeSlot.setAttribute('aria-pressed',String(!selected));
+    this.cutterSlot.setAttribute('aria-pressed',String(selected));
+    const sprintText = this.sprint ? 'SPRINT ON' : 'SPRINT';
+    if (this.sprintButton.textContent !== sprintText) this.sprintButton.textContent = sprintText;
+    this.sprintButton.classList.toggle('active',this.sprint);
+    this.sprintButton.setAttribute('aria-pressed',String(this.sprint));
+    const status = 'v6.2.10 | ' + (selected ? 'CUTTER' : 'KNIFE') + (away ? ' - ' + cutter.state : '') +
+      ' | ' + Math.ceil(training.stamina) + '%';
+    if (this.status.textContent !== status) this.status.textContent = status;
+  }
+});
+</script>
+
+
+<script>
+AFRAME.registerComponent('pause-menu', {
+  init: function () {
+    this.opened = false;
+    this.page = 'home';
+    this.wristArmed = true;
+    this.dwell = 0;
+    this.grips = {left: false, right: false};
+    this.left = document.querySelector('#left');
+    this.right = document.querySelector('#right');
+    this.view = document.querySelector('#view');
+    ['head', 'hand', 'normal', 'toHead', 'look', 'origin', 'direction', 'end'].forEach(key => this[key] = new THREE.Vector3());
+    this.q = new THREE.Quaternion();
+    this.matrix = new THREE.Matrix4();
+    this.raycaster = new THREE.Raycaster();
+    this.menu = document.createElement('a-entity');
+    const background = document.createElement('a-plane');
+    background.setAttribute('width', 1.85); background.setAttribute('height', 1.9);
+    background.setAttribute('material', 'shader: flat; color: #101f30; opacity: 0.97');
+    this.menu.appendChild(background);
+    const text = (position, width, align) => {
+      const el = document.createElement('a-text');
+      el.setAttribute('position', position); el.setAttribute('width', width);
+      el.setAttribute('align', align || 'center'); el.setAttribute('color', '#e4f4ff');
+      this.menu.appendChild(el); return el;
+    };
+    this.title = text('0 0.76 0.02', 1.6);
+    this.info = text('0 0.52 0.02', 1.65);
+    this.helpText = text('-0.78 0.38 0.02', 1.55, 'left');
+    this.buttons = [];
+    const labels = [
+      ['resume', 'RESUME'], ['reset', 'RESET TARGETS'], ['mute', 'MUTE / UNMUTE'], ['test', 'TEST SOUND'],
+      ['down', 'VOLUME -'], ['up', 'VOLUME +'], ['help', 'CONTROLS / HELP'], ['hints', 'AIM / GRIP HINTS']
+    ];
+    labels.forEach(([action, label], index) => {
+      const button = document.createElement('a-plane');
+      button.setAttribute('position', {x: index % 2 ? 0.44 : -0.44, y: 0.14 - Math.floor(index / 2) * 0.245, z: 0.025});
+      button.setAttribute('width', 0.8); button.setAttribute('height', 0.18);
+      button.setAttribute('material', 'shader: flat; color: #294c69; side: double');
+      button.object3D.userData.pauseAction = action;
+      const labelEl = document.createElement('a-text');
+      labelEl.setAttribute('position', '0 0 0.01'); labelEl.setAttribute('align', 'center');
+      labelEl.setAttribute('width', 0.75); labelEl.setAttribute('value', label);
+      button.appendChild(labelEl); this.menu.appendChild(button);
+      this.buttons.push({el: button, action: action, label: labelEl});
+    });
+    this.el.appendChild(this.menu);
+    this.menu.object3D.visible = false;
+    this.wrist = document.createElement('a-entity');
+    this.wrist.setAttribute('position', '0 0.055 0.025');
+    this.wrist.setAttribute('rotation', '-90 0 0');
+    const tile = document.createElement('a-plane');
+    tile.setAttribute('width', 0.13); tile.setAttribute('height', 0.085);
+    tile.setAttribute('material', 'shader: flat; color: #24516b; side: double');
+    const label = document.createElement('a-text');
+    label.setAttribute('value', 'PAUSE\nLOOK HERE'); label.setAttribute('align', 'center');
+    label.setAttribute('width', 0.12); label.setAttribute('position', '0 0 0.002');
+    tile.appendChild(label); this.wrist.appendChild(tile); this.left.appendChild(this.wrist);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    this.pointer = new THREE.Line(geometry, new THREE.LineBasicMaterial({color: 0xffd166}));
+    this.pointer.frustumCulled = false; this.pointer.visible = false;
+    this.el.object3D.add(this.pointer);
+
+    this.overlay = document.createElement('div'); this.overlay.id = 'pause-overlay';
+    this.overlay.innerHTML = '<section><h2>PAUSED</h2><p id="pause-info"></p><div id="pause-actions"></div><pre id="pause-help"></pre></section>';
+    document.body.appendChild(this.overlay);
+    labels.forEach(([action, label]) => {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+      button.addEventListener('click', () => this.action(action));
+      this.overlay.querySelector('#pause-actions').appendChild(button);
+    });
+    const launcher = document.createElement('button'); launcher.id = 'pause-launcher'; launcher.textContent = 'Pause';
+    launcher.addEventListener('click', () => this.toggle()); document.body.appendChild(launcher);
+    this.right.addEventListener('thumbstickdown', event => {
+      if (!this.el.is('vr-mode')) return;
+      event.stopImmediatePropagation(); this.toggle();
+    }, true);
+    const blocked = ['triggerdown','triggerup','gripdown','gripup','thumbstickmoved','abuttondown','abuttonup',
+      'bbuttondown','bbuttonup','xbuttondown','xbuttonup','ybuttondown','ybuttonup'];
+    [this.left, this.right].forEach(hand => blocked.forEach(name => hand.addEventListener(name, event => {
+      const side = hand === this.left ? 'left' : 'right';
+      if (name === 'gripdown') this.grips[side] = true;
+      if (name === 'gripup') this.grips[side] = false;
+      if (!this.opened) return;
+      event.stopImmediatePropagation();
+      if (name === 'triggerdown') {
+        this.fx().unlockAudio();
+        const hit = this.pick(side);
+        if (hit) this.action(hit.action);
+      }
+    }, true)));
+    window.addEventListener('keydown', event => {
+      const editable = event.target.closest && event.target.closest('input,textarea,[contenteditable]');
+      if (!editable && !event.repeat && ['Escape','KeyP'].includes(event.code)) {
+        event.preventDefault(); event.stopImmediatePropagation(); this.toggle(); return;
+      }
+      if (this.opened && !editable) { event.preventDefault(); event.stopImmediatePropagation(); }
+    }, true);
+    ['enter-vr','exit-vr'].forEach(name => this.el.addEventListener(name, () => {
+      this.setOpen(false); this.dwell = 0; this.wristArmed = false;
+    }));
+  },
+
+  fx: function () { return this.el.components['ability-test']; },
+
+  toggle: function () { this.setOpen(!this.opened); },
+
+  help: function () {
+    return 'QUEST\nLeft stick: move | Right stick: turn\nSprint works in every movement direction\nA: jump / ledge launch | Grips: climb\nR-stick UP: equip | DOWN: blade power\nCutter: holding grip + swing + release throws\nHands close + both grips: handoff\nB: anchor cutter / release when clear\nHolding-hand trigger: tether | R-trigger: knife\nRelease trigger: hover | Grip during tether: park\nTwo quick trigger taps: retrieve\nR-stick click: pause / resume\nAim/grip hints: pause menu\nEmpty left wrist + look 0.8s: pause\n\nPHONE\nMove pad + drag to look; Sprint toggles\nHotbar: Knife/Cutter | Drag THROW to aim\nSecondary: Swing/Punch or Retrieve\n\nDESKTOP\nWASD move | Arrows look | Space jump | Shift sprint\nC equip | V blade | E tether | G retrieve | O anchor\nI/K depth | J/L roll | Click swing\nP / Escape: pause\n\nTether costs 2 stamina/s; hover and retrieval are free.\nObject transfer and left-trigger ownership are not in this build yet.';
+  },
+
+  setOpen: function (value) {
+    if (this.opened === value) return;
+    this.opened = value;
+    const training = this.el.components['training-v4'];
+    const cutter = this.el.components['plasma-cutter'];
+    const touch = this.el.components['touch-controls'];
+    const climbing = this.el.components['ledge-climb'];
+    const fx = this.fx();
+    if (value) {
+      this.openedAt = performance.now();
+      this.page = 'home'; this.wristArmed = false; this.dwell = 0;
+      if (climbing) climbing.hands.forEach(hand => { this.grips[hand.el === this.left ? 'left' : 'right'] = hand.held; });
+      if (training) training.clearInput();
+      if (cutter) {
+        cutter.clearTrigger(); cutter.lastTapAt = -100;
+        if (cutter.state === 'CONTROLLED') cutter.hover(false);
+        cutter.stopHum(); cutter.armSamples.length = 0; cutter.armVelocity.set(0,0,0);
+      }
+      if (touch) touch.clear();
+      if (fx) { fx.throwRequested = false; fx.aimLine.visible = false; fx.aimDot.visible = false; }
+      this.hidden = [];
+      ['#vrhud','#hud'].forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element && element.object3D) { this.hidden.push([element.object3D, element.object3D.visible]); element.object3D.visible = false; }
+      });
+      if (fx && fx.status) { this.hidden.push([fx.status.object3D, fx.status.object3D.visible]); fx.status.object3D.visible = false; }
+      if (cutter && cutter.state === 'HELD') { this.hidden.push([cutter.root, cutter.root.visible]); cutter.root.visible = false; }
+      this.view.object3D.getWorldPosition(this.head); this.view.object3D.getWorldQuaternion(this.q);
+      this.direction.set(0,0,-1).applyQuaternion(this.q);
+      this.menu.object3D.position.copy(this.head).addScaledVector(this.direction, 1.25);
+      this.menu.object3D.quaternion.copy(this.q);
+      this.menu.object3D.scale.setScalar(0.75);
+    } else {
+      const duration = Math.max(0, performance.now() - (this.openedAt || performance.now()));
+      if (training) {
+        ['resetAt','flashAt','placeAt','nextClick'].forEach(key => { if (training[key] > 0) training[key] += duration; });
+        training.hands.forEach(hand => { if (hand.nextHit > 0) hand.nextHit += duration; hand.ready = false; });
+        training.clearInput(); training.lastHUD = '';
+      }
+      if (climbing) {
+        if (climbing.cooldownUntil > 0) climbing.cooldownUntil += duration;
+        climbing.hands.forEach(hand => { hand.held = this.grips[hand.el === this.left ? 'left' : 'right']; });
+      }
+      if (cutter) { cutter.historyReady = false; cutter.remoteHistory = false; cutter.armSamples.length = 0; cutter.armVelocity.set(0,0,0); }
+      (this.hidden || []).forEach(([object, visible]) => { object.visible = visible; });
+      this.pointer.visible = false;
+    }
+    document.body.classList.toggle('game-paused', value);
+    this.menu.object3D.visible = value && this.el.is('vr-mode');
+    this.overlay.style.display = value && !this.el.is('vr-mode') ? 'grid' : 'none';
+    this.render();
+  },
+
+  action: function (action) {
+    const fx = this.fx();
+    if (action === 'resume') { this.setOpen(false); return; }
+    if (action === 'help') this.page = this.page === 'help' ? 'home' : 'help';
+    if (action === 'hints') fx.toggleHints();
+    if (['mute','down','up','test'].includes(action)) fx.soundAction(action);
+    if (action === 'reset') {
+      this.el.components['training-v4'].placeTarget();
+      fx.hp = 100; fx.resetAt = 0; fx.flashUntil = 0; fx.dummy.object3D.visible = true;
+      fx.bodyMaterial.color.setHex(0x26c6da); fx.health.setAttribute('value','SUMMIT DUMMY\nHP 100 / 100');
+    }
+    this.render();
+  },
+
+  render: function () {
+    const fx = this.fx(); if (!fx) return;
+    const training = this.el.components['training-v4'];
+    const cutter = this.el.components['plasma-cutter'];
+    const info = 'Stamina ' + Math.ceil(training.stamina) + '/100 | SFX ' +
+      (fx.muted ? 'MUTED' : Math.round(fx.soundVolume * 100) + '%') +
+      '\nGuided ' + (cutter ? cutter.guidedSeconds.toFixed(1) : '0') + 's | Spent ' +
+      (cutter ? cutter.staminaSpent.toFixed(1) : '0') + ' stamina (session total)';
+    this.title.setAttribute('value', this.page === 'help' ? 'CONTROLS / HELP' : 'PAUSED');
+    this.info.setAttribute('value', info);
+    this.helpText.setAttribute('value', this.page === 'help' ? this.help() : 'World simulation is paused.\nHead and controller tracking stay active.\nPoint either controller and press trigger.');
+    this.helpText.setAttribute('width', this.page === 'help' ? 1.52 : 1.55);
+    this.helpText.setAttribute('scale', this.page === 'help' ? '0.75 0.75 0.75' : '1 1 1');
+    this.buttons.forEach(button => {
+      button.el.object3D.visible = this.page !== 'help' || ['help','resume'].includes(button.action);
+      if (this.page === 'help' && ['help','resume'].includes(button.action)) button.el.setAttribute('position', {x: button.action === 'help' ? -0.44 : 0.44, y:-0.79, z:0.025});
+      else {
+        const index = this.buttons.indexOf(button);
+        button.el.setAttribute('position', {x:index % 2 ? 0.44 : -0.44, y:0.14-Math.floor(index/2)*0.245,z:0.025});
+      }
+      if (button.action === 'help') button.label.setAttribute('value', this.page === 'help' ? 'BACK' : 'CONTROLS / HELP');
+    });
+    this.overlay.querySelector('#pause-info').textContent = info;
+    this.overlay.querySelector('#pause-help').textContent = this.page === 'help' ? this.help() : '';
+  },
+
+  readRay: function (side) {
+    if (side === 'right') return this.fx().readAim(this.origin,this.direction);
+    const xr = this.el.renderer.xr, session = xr.getSession();
+    const frame = xr.getFrame ? xr.getFrame() : this.el.frame;
+    const tracked = this.el.systems['tracked-controls'];
+    const reference = tracked && tracked.referenceSpace ? tracked.referenceSpace : xr.getReferenceSpace();
+    if (!session || session.visibilityState !== 'visible' || !frame || !reference) return false;
+    const source = Array.from(session.inputSources).find(input => input.handedness === 'left' && input.targetRayMode === 'tracked-pointer' && !input.hand);
+    if (!source) return false;
+    let pose; try { pose = frame.getPose(source.targetRaySpace,reference); } catch(error) { return false; }
+    if (!pose) return false;
+    this.left.object3D.parent.updateWorldMatrix(true,false);
+    this.matrix.fromArray(pose.transform.matrix).premultiply(this.left.object3D.parent.matrixWorld);
+    this.origin.setFromMatrixPosition(this.matrix); this.direction.set(0,0,-1).transformDirection(this.matrix);
+    return true;
+  },
+
+  pick: function (side) {
+    if (!this.readRay(side)) return null;
+    this.menu.object3D.updateWorldMatrix(true,true);
+    this.raycaster.set(this.origin,this.direction); this.raycaster.far = 3;
+    const hits = this.raycaster.intersectObjects(this.buttons.filter(button => button.el.object3D.visible).map(button => button.el.object3D),true);
+    if (!hits.length) return null;
+    let object = hits[0].object;
+    while (object && !object.userData.pauseAction) object = object.parent;
+    return object ? {action:object.userData.pauseAction,distance:hits[0].distance} : null;
+  },
+
+  wristEligible: function () {
+    if (!this.el.is('vr-mode') || this.opened || this.grips.left) return false;
+    const training = this.el.components['training-v4'];
+    const tracked = training && training.hands.find(hand => hand.el === this.left && hand.connected);
+    if (!tracked) return false;
+    const climbing = this.el.components['ledge-climb'];
+    if (climbing && climbing.hands.some(hand => hand.el === this.left && (hand.held || hand.grabbing))) return false;
+    const cutter = this.el.components['plasma-cutter'];
+    if (cutter && cutter.active && cutter.owningHand === 'left') return false;
+    return true;
+  },
+
+  tick: function (time, delta) {
+    if (!this.el.is('vr-mode')) { this.wrist.object3D.visible = false; return; }
+    if (this.opened) {
+      this.wrist.object3D.visible = false;
+      const hit = this.pick('right');
+      this.pointer.visible = this.readRay('right');
+      if (this.pointer.visible) {
+        this.end.copy(this.origin).addScaledVector(this.direction, hit ? hit.distance : 1.4);
+        const positions = this.pointer.geometry.attributes.position;
+        positions.setXYZ(0,this.origin.x,this.origin.y,this.origin.z);
+        positions.setXYZ(1,this.end.x,this.end.y,this.end.z); positions.needsUpdate = true;
+      }
+      return;
+    }
+    this.pointer.visible = false;
+    const eligible = this.wristEligible(); this.wrist.object3D.visible = eligible;
+    let looking = false;
+    if (eligible) {
+      this.view.object3D.getWorldPosition(this.head); this.left.object3D.getWorldPosition(this.hand);
+      this.toHead.copy(this.head).sub(this.hand); const distance = this.toHead.length();
+      this.toHead.normalize(); this.left.object3D.getWorldQuaternion(this.q);
+      this.normal.set(0,1,0).applyQuaternion(this.q);
+      this.view.object3D.getWorldQuaternion(this.q); this.look.set(0,0,-1).applyQuaternion(this.q);
+      looking = distance > 0.18 && distance < 0.9 && this.normal.dot(this.toHead) > 0.55 && this.look.dot(this.toHead.clone().negate()) > 0.95;
+    }
+    if (!looking) { this.dwell = 0; this.wristArmed = true; }
+    else if (this.wristArmed) {
+      this.dwell += Math.min((delta || 0)/1000,0.05);
+      if (this.dwell >= 0.8) this.setOpen(true);
+    }
+  }
+});
+</script>
+
+
+<script>
+AFRAME.registerComponent('input-layout', {
+  init: function () {
+    this.mode = 'auto';
+    this.effective = null;
+    this.keyboardUsed = false;
+    this.lastTouchAt = -Infinity;
+    this.fine = window.matchMedia('(any-pointer: fine)');
+    this.coarse = window.matchMedia('(any-pointer: coarse)');
+    try {
+      const saved = localStorage.getItem('descent-input-layout-v1');
+      if (['auto','keyboard','touch'].includes(saved)) this.mode = saved;
+    } catch (error) {}
+    this.onKeyboard = event => {
+      if (event.target.closest && event.target.closest('input,textarea,select,[contenteditable]')) return;
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      this.keyboardUsed = true; this.apply();
+    };
+    this.onPointer = event => {
+      if (event.pointerType === 'touch') {
+        this.lastTouchAt = performance.now();
+        if (!this.fine.matches) this.keyboardUsed = false;
+      } else if (event.pointerType === 'mouse' && performance.now() - this.lastTouchAt > 1000) {
+        this.keyboardUsed = true;
+      }
+      this.apply();
+    };
+    this.onMedia = () => this.apply();
+    this.onLoaded = () => this.attachSettings();
+    window.addEventListener('keydown',this.onKeyboard,true);
+    window.addEventListener('pointerdown',this.onPointer,true);
+    [this.fine,this.coarse].forEach(query => { if (query.addEventListener) query.addEventListener('change',this.onMedia); });
+    this.el.addEventListener('loaded',this.onLoaded);
+    this.apply(); this.attachSettings();
+  },
+
+  resolve: function () {
+    if (this.mode !== 'auto') return this.mode;
+    // A touchscreen alone does not make a keyboard/trackpad device a phone.
+    return this.keyboardUsed || this.fine.matches || !this.coarse.matches ? 'keyboard' : 'touch';
+  },
+
+  setMode: function (mode) {
+    if (!['auto','keyboard','touch'].includes(mode)) return;
+    this.mode = mode;
+    try { localStorage.setItem('descent-input-layout-v1',mode); } catch (error) {}
+    this.apply();
+  },
+
+  apply: function () {
+    const next = this.resolve();
+    if (next !== this.effective) {
+      const cutter = this.el.components['plasma-cutter'];
+      // Switching layouts must not turn a held input into a gesture launch.
+      if (cutter) { cutter.clearTrigger(); cutter.lastTapAt = -100; if (cutter.state === 'CONTROLLED') cutter.hover(false); }
+      const touch = this.el.components['touch-controls'];
+      if (touch) touch.clear();
+      const training = this.el.components['training-v4'];
+      if (training) training.clearInput();
+      const fx = this.el.components['ability-test'];
+      if (fx) fx.throwRequested = false;
+      this.effective = next;
+    }
+    document.body.classList.toggle('input-touch',next === 'touch');
+    this.updateSettings();
+  },
+
+  attachSettings: function () {
+    if (this.settings) return;
+    const section = document.querySelector('#pause-overlay section');
+    if (!section) return;
+    this.settings = document.createElement('fieldset');
+    this.settings.id = 'input-layout-settings';
+    const legend = document.createElement('legend'); legend.textContent = 'Control layout'; this.settings.appendChild(legend);
+    this.options = [];
+    ['auto','keyboard','touch'].forEach(mode => {
+      const button = document.createElement('button'); button.type = 'button';
+      button.textContent = mode[0].toUpperCase() + mode.slice(1);
+      button.addEventListener('click',() => this.setMode(mode));
+      this.settings.appendChild(button); this.options.push({mode:mode,button:button});
+    });
+    this.note = document.createElement('p'); this.settings.appendChild(this.note); section.appendChild(this.settings);
+    this.updateSettings();
+  },
+
+  updateSettings: function () {
+    if (!this.settings) return;
+    this.options.forEach(option => option.button.setAttribute('aria-pressed',String(option.mode === this.mode)));
+    this.note.textContent = (this.mode === 'auto' ? 'Auto selected: ' : 'Selected: ') +
+      (this.effective === 'touch' ? 'Touch' : 'Keyboard') + '. Keyboard hides the phone controls; Quest controls are unchanged.';
+  },
+
+  remove: function () {
+    window.removeEventListener('keydown',this.onKeyboard,true);
+    window.removeEventListener('pointerdown',this.onPointer,true);
+    [this.fine,this.coarse].forEach(query => { if (query.removeEventListener) query.removeEventListener('change',this.onMedia); });
+    this.el.removeEventListener('loaded',this.onLoaded);
+    if (this.settings) this.settings.remove();
+    document.body.classList.remove('input-touch');
+  }
+});
+</script>
+
 </head>
 
 <body>
 
-<div id="hud">Loading XR Aim Test v5.1...</div>
+<div id="hud">Loading Wrist Lab v6.2.10...</div>
 <div id="crosshair">+</div>
 
 <a-scene
   training-v4
   ledge-climb
   ability-test
+  plasma-cutter
+  touch-controls
+  pause-menu
+  input-layout
+  ascent-run
   background="color: #182333">
 
   <a-light
@@ -1786,7 +3832,7 @@ AFRAME.registerComponent('ability-test', {
     color="#26C6DA">
   </a-ring>
 
-  <!-- Visual landmarks: no collision yet -->
+  <!-- Visual landmarks: projectile collision only; no new player collision -->
 
   <a-box
     position="-2 1.5 -5"
@@ -1824,27 +3870,14 @@ AFRAME.registerComponent('ability-test', {
 
   <!-- Instructions -->
 
-  <a-plane class="tutorial-hint"
-    position="-3 1.7 -3"
-    width="2.8"
-    height="2.4"
-    color="#17202B">
-  </a-plane>
 
-  <a-text class="tutorial-hint"
-    position="-3 1.7 -2.98"
-    align="center"
-    width="2.5"
-    color="white"
-    value="VR CONTROLS\nLeft stick: move\nRight stick: turn\nA: jump / ledge launch\nLeft stick click: sprint\nX: smooth / snap\nY: turning speed\nB: walking speed\nLeft trigger: reset orb\nRight trigger: knife\nRight stick click: hints">
-  </a-text>
 
   <a-text
     position="0 2.5 -5"
     align="center"
     width="4"
     color="white"
-    value="DESCENT VR\nXR AIM TEST v5.1">
+    value="DESCENT VR\nWRIST LAB v6.2.10">
   </a-text>
 
   <!-- Practice target -->
@@ -1898,5 +3931,93 @@ AFRAME.registerComponent('ability-test', {
   </a-entity>
 
 </a-scene>
+
+<script>
+AFRAME.registerComponent('ascent-run', {
+  init: function () {
+    this.view = document.querySelector('#view');
+    this.head = new THREE.Vector3();
+    this.points = [new THREE.Vector3(3,2.25,-0.6), new THREE.Vector3(3,2.9,-3),
+      new THREE.Vector3(5.5,4.1,-4.8), new THREE.Vector3(0,1.6,0)];
+    this.markers = this.points.map((point,index) => {
+      const entity = document.createElement('a-entity');
+      entity.setAttribute('position',{x:point.x,y:point.y,z:point.z});
+      const ring = document.createElement('a-torus');
+      ring.setAttribute('radius',0.24); ring.setAttribute('radius-tubular',0.018);
+      ring.setAttribute('segments-radial',24); ring.setAttribute('segments-tubular',6);
+      const core = document.createElement('a-sphere');
+      core.setAttribute('radius',0.06); core.setAttribute('segments-width',8); core.setAttribute('segments-height',6);
+      const label = document.createElement('a-text');
+      label.setAttribute('value',index === 3 ? 'HOME' : String(index+1));
+      label.setAttribute('align','center'); label.setAttribute('width',1.1); label.setAttribute('position','0 0.35 0');
+      entity.appendChild(ring); entity.appendChild(core); entity.appendChild(label); this.el.appendChild(entity);
+      return {entity,ring,core,label};
+    });
+    this.board = document.createElement('a-text');
+    this.board.setAttribute('position','-1.2 1.9 -1.6'); this.board.setAttribute('align','center');
+    this.board.setAttribute('width',2.1); this.board.setAttribute('color','#bdefff');
+    this.el.appendChild(this.board);
+    this.best = null;
+    try { const saved=Number(localStorage.getItem('descent-ascent-best-v1')); if (saved>0 && Number.isFinite(saved)) this.best=saved; } catch(error) {}
+    this.resetRun();
+  },
+
+  resetRun: function () {
+    this.index=0; this.elapsed=0; this.running=false; this.finished=false; this.restartAt=0;
+    this.lastBoard=''; this.paint(); this.drawBoard();
+  },
+
+  paint: function () {
+    this.markers.forEach((marker,index) => {
+      const color = index<this.index ? '#80ed99' : index===this.index ? '#62e8ff' : '#506376';
+      marker.ring.setAttribute('material',{color:color,shader:'flat',opacity:index<=this.index?0.95:0.25,transparent:true});
+      marker.core.setAttribute('material',{color:color,shader:'flat'});
+      marker.label.setAttribute('color',color);
+    });
+  },
+
+  drawBoard: function () {
+    const best=this.best===null?'--':this.best.toFixed(1)+'s';
+    const state=this.finished?'COMPLETE '+this.elapsed.toFixed(1)+'s':
+      this.running?(this.index===3?'RETURN TO HOME':'NEXT: BEACON '+(this.index+1))+' | '+this.elapsed.toFixed(1)+'s':
+      'Touch beacon 1 to start';
+    const text='ASCENT RUN\n'+state+'\nBest '+best+'\nClimb 1 > 2 > 3, then HOME';
+    if(text!==this.lastBoard){this.board.setAttribute('value',text);this.lastBoard=text;}
+  },
+
+  collect: function () {
+    if(this.finished)return;
+    if(!this.running){this.running=true;this.elapsed=0;}
+    this.index++;
+    if(this.index===this.points.length){
+      this.finished=true;this.running=false;this.restartAt=8;
+      if(this.best===null||this.elapsed<this.best){
+        this.best=this.elapsed;
+        try{localStorage.setItem('descent-ascent-best-v1',String(this.best));}catch(error){}
+      }
+    }
+    const fx=this.el.components['ability-test'];
+    if(fx){fx.playEffect('catch');fx.lastHit=this.finished?'ASCENT RUN COMPLETE - '+this.elapsed.toFixed(1)+'s':
+      'BEACON '+this.index+'/3'+(this.index===3?' - RETURN HOME':'');fx.feedbackUntil=fx.clock+2;}
+    this.paint();this.drawBoard();
+  },
+
+  tick: function (time,delta) {
+    const pause=this.el.components['pause-menu'];
+    if(!delta||delta>100||document.hidden||(pause&&pause.opened))return;
+    if(this.el.is('vr-mode')){const session=this.el.renderer.xr.getSession();if(session&&session.visibilityState!=='visible')return;}
+    const dt=delta/1000;
+    this.view.object3D.getWorldPosition(this.head);
+    this.board.object3D.lookAt(this.head);
+    if(this.finished){this.restartAt-=dt;if(this.restartAt<=0)this.resetRun();return;}
+    if(this.running)this.elapsed+=dt;
+    const marker=this.markers[this.index];
+    marker.entity.object3D.lookAt(this.head);
+    if(this.head.distanceTo(this.points[this.index])<=0.65)this.collect();
+    if(this.running)this.drawBoard();
+  }
+});
+</script>
+
 </body>
 </html>
